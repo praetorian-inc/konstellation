@@ -1,0 +1,8 @@
+Jinja2
+kubernetes
+logutils
+neo4j
+pyyaml
+tqdm
+colorama
+termcolor

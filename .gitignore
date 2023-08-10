@@ -1,0 +1,7 @@
+aws/snapshots
+venv
+results/*
+*.pyc
+.vscode/*
+*-enum/
+*-results/
