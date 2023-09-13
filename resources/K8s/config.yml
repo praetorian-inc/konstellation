@@ -1,0 +1,176 @@
+mappings:
+  default: 
+    template: node_generic.cypher
+    jsonPath: $.items[*]
+    labelField: items.kind
+    label: null
+    nameField: items.metadata.name
+  pods.json: 
+    template: node_pods.cypher
+    jsonPath: $.items[*]
+    labelField: null
+    label: Pod
+    nameField: items.metadata.name
+order:
+  last:
+    - namespaces.json
+    - roles.rbac.authorization.k8s.io.json
+    - clusterroles.rbac.authorization.k8s.io.json
+    - rolebindings.rbac.authorization.k8s.io.json
+    - clusterrolebindings.rbac.authorization.k8s.io.json
+relationships:
+  - name: Node to ServiceAccount
+    description: Maps nodes with with a serviceAccountName in its spec to the corresponding ServiceAccount node.
+    template: rel_serviceAccountName_relationships.cypher
+  - name: Map SERVICE_ACCOUNT_TOKENS
+    description: Map ServiceAccounts to their corresponding secrets
+    template: rel_serviceaccount_to_secret.cypher
+  - name: Cluster Role Bindings
+    description: Map ClusterRoleBinding subjects to the roleRef
+    template: rel_role_bindings.cypher
+    results_file: clusterrolebindings.rbac.authorization.k8s.io.json
+  - name: Role Bindings
+    description: Map RoleBinding subjects to the roleRef
+    template: rel_role_bindings.cypher
+    results_file: rolebindings.rbac.authorization.k8s.io.json
+  - name: Cluster Role Privileges
+    description: Map privileges from ClusterRoles to the corresponding resources
+    template: rel_clusterroles.cypher
+    results_file: clusterroles.rbac.authorization.k8s.io.json
+  - name: Role Privileges
+    description: Map privileges from Roles to the corresponding resources
+    template: rel_roles.cypher
+    results_file: roles.rbac.authorization.k8s.io.json
+  - name: Resource to Owner
+    description: Map Resources to their Owners
+    template: rel_resource_to_owner.cypher
+  - name: Endpoint to Target
+    description: Map Endpoints to the targets defined in the subsets property.
+    template: rel_endpoint_to_target.cypher
+
+queries:
+  - name: Inbound relationships to admin or cluster-admin
+    query: MATCH (x)-[r]->(y:ClusterRole) WHERE y.name = "admin" OR y.name = "cluster-admin" RETURN x.name, collect(TYPE(r)) as verb, y.name
+  - name: Principals with full contol over nodes
+    query: "MATCH (x)-[:FULL_CONTROL]->(y:Node) RETURN DISTINCT x.name"
+  - name: SA can read service account token of SA bound to privileged role
+    template: query_read_privileged_sa_secret.cypher
+  - name: Resource can read secret for Service Account
+    query: "MATCH (sa:ServiceAccount)-[r1:SERVICE_ACCOUNT_TOKEN]->(s:Secret)<-[r2:FULL_CONTROL|GET|LIST]-(x) WHERE x <> sa and x.namespace <> 'kube-system' RETURN sa.name as vulnSA, type(r1) as type, s.name as vulnSaSecret, type(r2) as verb, x.name as serviceaccount"
+  - name: SA that can read all secrets and is not in the kube-system namespace
+    query: "MATCH (sa:ServiceAccount)-[r1:ROLE_BINDING]->(x)-[r2:GET|LIST]->(s:Secret {type: 'resource'}) WHERE NOT sa.namespace = 'kube-system' RETURN sa.name, type(r1), x.name, type(r2)"
+  - name: Roles bound to cluster admin
+    query: "MATCH (x)-[r1:ROLE_BINDING]->(cr:ClusterRole) WHERE cr.name in ['admin', 'clsuter-admin'] RETURN x.name, type(r1), cr.name"
+  - name: Pods that can read service account tokens of other roles.
+    query: MATCH (p:Pod)-[r1:RUN_AS]->(y)-[r2:ROLE_BINDING]->(x)-[r3:GET|LIST|FULL_CONTROL]->(s:Secret)<-[r4:SERVICE_ACCOUNT_TOKEN]-(sa:ServiceAccount)-[r5:ROLE_BINDING]->(role) WHERE x <> role RETURN p.name, type(r1), y.name, type(r2), x.name, type(r3), s.name, type(r4), sa.name, type(r5), role.name
+  - name: Service accounts that can read all secrets
+    query: "MATCH (sa:ServiceAccount)-[r1:ROLE_BINDING]->(role WHERE role.kind in ['role', 'clusterrole'])-[r2:GET|LIST]->(s:Secret {type: 'resource'}) RETURN sa.name, role.name"
+  - name: Non-kube-system service accounts that can read kube-system secrets
+    query: "MATCH (sa:ServiceAccount)-[r1:ROLE_BINDING]->(role)-[r2:GET|LIST]->(s:Secret {namespace: 'kube-system'}) WHERE NOT sa.namespace = 'kube-system' RETURN sa.name, type(r1), role.name, type(r2), s.name"
+  - name: Pods that can exec or have full control over all pods
+    query: "MATCH path = (p:Pod)-[r1:RUN_AS]->(sa:ServiceAccount)-[r2:ROLE_BINDING]->(role)-[r3:CREATE|GET_EXEC|FULL_CONTROL]->(p2:Pod {type: 'resource'}) RETURN collect(p.name) as pods, sa.name, role.name, type(r3)"
+  - name: Role bindings for the system:unauthenticated group
+    query: "MATCH (g:Group {name: 'system:unauthenticated'})-[r:ROLE_BINDING]->(role) RETURN g.name, type(r), role.name"
+  - name: Role bindings for system:anonymous user
+    query: "MATCH (u:User {name: 'system:anonymous'})-[rb:ROLE_BINDING]->(role) RETURN u.name, type(rb), role.name"
+  - name: Resources that can create or modify role bindings
+    query: "MATCH path = (x)-[:ROLE_BINDING]->(role)-[r1:CREATE|FULL_CONTROL|UPDATE]->(rb:RoleBinding {type: 'resource'}) RETURN path"
+  - name: Privileged containers
+    query: "MATCH (c:Container) WHERE c.`securityContext.privileged` = 'true' RETURN c.name"
+  - name: Pods with hostPath mounts
+    query: "MATCH (pod:Pod) WHERE pod.`spec.volumes` IS NOT NULL AND pod.`spec.volumes` CONTAINS 'hostPath' AND pod.namespace <> 'kube-system' RETURN pod.name, pod.`spec.volumes`"
+  - name: Pods with allowPrivilegeEscalation as true
+    query: "MATCH (p)-[:POD]->(c:Container {`securityContext.allowPrivilegeEscalation`: \"true\"}) RETURN DISTINCT p.name"
+  - name: Pods that run as user id 0
+    query: "MATCH (p)-[:POD]->(c:Container {`securityContext.runAsUser`: \"0\"}) RETURN DISTINCT p.name"
+  - name: Get service accounts outside of `kube-system` with rolebindings or clusterrolebindings to roles or clusterroles that allow them list, get or full control access to `kube-system` secrets
+    query: "MATCH (sa:ServiceAccount)<-[r1:ROLE_BINDING]->(role where role.kind in ['role','clusterrole'])-[r2:LIST|GET|FULL_CONTROL]->(s:Secret {namespace: 'kube-system'}) WHERE NOT sa.namespace = 'kube-system' RETURN DISTINCT(sa.name),r1.name,r1.namespace,r1.kind,sa.`metadata.namespace`"
+  - name: Get service accounts outside of the `kube-system` namespace with clusterrolebindings or rolebindings to roles or clusterroles that grant the `escalate` verb
+    query: "MATCH (sa:ServiceAccount)<-[r1:ROLE_BINDING]->(role where role.kind in ['role','clusterrole'])-[r2:`ESCALATE`]->(y) WHERE NOT sa.namespace = 'kube-system' RETURN DISTINCT(sa.name),r1.name,r1.kind,r1.namespace,sa.`metadata.namespace`"
+    reference: https://raesene.github.io/blog/2020/12/12/Escalating_Away/
+  - name: Get service accounts outside of the `kube-system` namespace with clusterrolebindings or rolebindings to roles or clusterroles that grant the `bind` verb
+    template: query_service_accounts_bind.cypher
+    reference: https://raesene.github.io/blog/2021/01/16/Getting-Into-A-Bind-with-Kubernetes/
+  - name: Get service accounts outside of the `kube-system` namespace with clusterrolebindings or rolebindings to roles or clusterroles that grant the `impersonate` verb
+    query: "MATCH (sa:ServiceAccount)-[r1:ROLE_BINDING]->(role)-[r2:`IMPERSONATE`]->(y) WHERE NOT sa.`metadata.namespace`='kube-system' RETURN DISTINCT sa.name, sa.`metadata.namespace`, collect(y.name)"
+    reference: https://blog.lightspin.io/kubernetes-pod-privilege-escalation
+  - name: Get entities that can exec into privileged pods
+    query: "MATCH (x)-[r:GET_EXEC|CREATE_EXEC]->(p)-[pod:POD]->(c:Container) WHERE c.`securityContext.privileged`='true' RETURN x.name,collect(p.name)"
+  - name: Get all groups and the roles or cluster roles that they are bound to
+    query: "match (r)<-[rb:ROLE_BINDING]-(x:Group) where r.kind in [\"role\",\"clusterrole\"] return DISTINCT x.name,x.namespace,collect(DISTINCT r.name)"
+  - name: Get pods and the roles for given service account that pods can run as (REPLACE THE SERVICE ACCOUNT NAME BELOW; MEANT FOR COPY/PASTE)
+    query: "match (p:Pod)-[:RUN_AS]->(sa:ServiceAccount)-[rb:ROLE_BINDING]->(r where r.kind in [\"role\",\"clusterrole\"]) where sa.name = \"<sa_name>\" return DISTINCT sa.name,p.name"
+  - name: Get rules for a given role/cluster-role (REPLACE THE ROLE NAME BELOW; MEANT FOR COPY/PASTE)
+    query: "MATCH (r where r.kind in ['role','clusterrole']) with apoc.convert.getJsonProperty(r,'rules') as rules,r unwind rules as rule match (r) where r.name=\"<ROLE_NAME>\" return rule"
+  - name: Get all service accounts bound to a role/cluster-role (REPLACE THE ROLE NAME BELOW; MEANT FOR COPY/PASTE)
+    query: "MATCH (sa:ServiceAccount)-[rb:ROLE_BINDING]->(role where role.kind in ['role','clusterrole']) where role.name=\"<ROLE_NAME>\" return sa.name,sa.namespace,role.name,role.kind"
+  - name: Get cluster-roles that can use PSPs
+    template: query_roles_clusterroles_use_psps.cypher
+  - name: Get entities bound to roles or cluster-roles that can use PSPs
+    template: query_entities_use_psps.cypher
+  - name: Roles or Cluster Roles that use PSPs and can create or patch pods
+    template: query_use_psps_create_patch_pods.cypher
+  - name: Get entities that can exec into pods within their namespace or in their cluster
+    template: query_entities_exec_pods.cypher
+  - name: Get service accounts outside of `kube-system` with clusterrolebindings or rolebindings to roles or clusterroles that allow them full control or create/patch access to pods
+    template: query_crb_to_role_pods_create.cypher
+  - name: Get service accounts outside of `kube-system` with clusterrolebindings or rolebindings to roles or clusterroles that allow them pods/exec access
+    template: query_crb_to_role_pods_exec.cypher
+  - name: "Bad Pods #1 - privileged, hostPID, hostIPC, hostNetwork, and hostPath"
+    template: query_bad_pods_1.cypher
+    description: Pods with privileged security context, hostPID, hostIPC, hostNetwork, and hostPaths
+    reference: https://bishopfox.com/blog/kubernetes-pod-privilege-escalation
+  - name: "Bad Pods #2 - privileged and hostPID"
+    query: "MATCH (p:Pod {`spec.hostPID`: \"true\"})-[r:POD]->(c:Container {`securityContext.privileged`: \"true\"}) RETURN p.name, collect(c.name)"
+    description: Pods with privileged securty context and hostPID
+    reference: https://bishopfox.com/blog/kubernetes-pod-privilege-escalation
+  - name: "Bad Pods #3 - privileged pods only"
+    query: "MATCH (p:Pod)-[r:POD]->(c:Container {`securityContext.privileged`: \"true\"}) RETURN p.name, collect(c.name)"
+    description: Pods with privileged securty context
+    reference: https://bishopfox.com/blog/kubernetes-pod-privilege-escalation
+  - name: "Bad Pods #4 - hostPath"
+    template: query_bad_pods_4.cypher
+    description: Pods with mounted hostPaths
+    reference: https://bishopfox.com/blog/kubernetes-pod-privilege-escalation
+  - name: "Bad Pods #4 - hostPath query 2"
+    query: "MATCH (p:Pod) WITH apoc.convert.getJsonProperty(p, 'spec.volumes') as volumes, p UNWIND volumes as volume MATCH (p) WHERE volume.hostPath IS NOT NULL AND volume.hostPath.path = \"/\" RETURN DISTINCT p.name, p.namespace"
+    description: Pods with mounted / hostPaths only
+    reference: https://bishopfox.com/blog/kubernetes-pod-privilege-escalation
+  - name: "Bad Pods #5 - hostPID"
+    query: "MATCH (p:Pod {`spec.hostPID`: \"true\"}) RETURN p.name"
+    description: Pods with hostPID
+    reference: https://bishopfox.com/blog/kubernetes-pod-privilege-escalation
+  - name: "Bad Pods #6 - hostNetwork"
+    query: "MATCH (p:Pod {`spec.hostNetwork`: \"true\"}) RETURN p.name"
+    description: Pods with hostNetwork
+    reference: https://bishopfox.com/blog/kubernetes-pod-privilege-escalation
+  - name: "Bad Pods #7 - hostIPC"
+    query: "MATCH (p:Pod {`spec.hostIPC`: \"true\"}) RETURN p.name"
+    description: Pods with hostIPC
+    reference: https://bishopfox.com/blog/kubernetes-pod-privilege-escalation
+  - name: Nodes with control over `system:` cluster roles.
+    template: query_system_cluster_role_control.yml
+  - name: Nodes with control over cluster-admin
+    query: "MATCH (n)-[r:FULL_CONTROL]->(cr:ClusterRole {name: 'cluster-admin'}) WHERE not cr.name = 'cluster-admin' RETURN DISTINCT n.name"
+  - name: Role can create service account tokens
+    query: match (x)-[b:ROLE_BINDING]->(role)-[r:CREATE_TOKEN]->(s:ServiceAccount) WHERE not role.name in ["system:kube-controller-manager", "system:node"] RETURN x.name, x.kind, role.name, collect(s.name)
+  - name: non-privileged role proxy pod or node
+    query: MATCH (x)-[b:ROLE_BINDING]->(role)-[r:CREATE_PROXY|GET_PROXY]->(y) WHERE y.kind in ["pod", "node"] and not role.name in ["admin", "edit", "cluster-admin", "system:aggregate-to-edit"] RETURN x.name, x.kind, role.name, type(r) as verb, collect(y.name)
+  - name: non-privileged role can exec pod or node
+    query: MATCH (x)-[b:ROLE_BINDING]->(role)-[r:CREATE_EXEC|GET_EXEC]->(p:Pod) WHERE p.kind = "pod" and not role.name in ["admin", "edit", "cluster-admin", "system:aggregate-to-edit"] RETURN x.name, x.kind, role.name, type(r) as verb, p.kind, collect(p.name)
+  - name: Role has ESCALATE privilege
+    query: MATCH (role)-[r:ESCALATE]->(y) WHERE role.name <> "system:controller:clusterrole-aggregation-controller" return  r.name,  y.name
+  - name: Role has IMPERSONATE privilege
+    query: MATCH (x)-[b:ROLE_BINDING]->(role)-[r:`IMPERSONATE`]->(y) WHERE not role.name in ["admin", "edit", "cluster-admin"] return x.name, role.name, y.name
+  - name: Role can modify secrets
+    query: MATCH (x)-[b:ROLE_BINDING]->(role)-[r:`CREATE`|`UPDATE`|PATCH|FULL_CONTROL]->(s:Secret) WHERE not role.name in ["admin", "edit", "cluster-admin"] AND s.namespace = "kube-system" return x.name, x.kind, role.name, collect(s.name)
+  - name: Role can read privileged secrets
+    query: "MATCH (x)-[b:ROLE_BINDING {kind: 'ClusterRoleBinding'}]->(role)-[r:GET|LIST|FULL_CONTROL]->(s:Secret {namespace: 'kube-system'}) RETURN x.name, x.kind, role.name, collect(s.name)"
+  - name: Role can modify EKS aws-auth config map
+    query: "MATCH (x)-[b:ROLE_BINDING]->(role)-[r:`UPDATE`|PATCH|FULL_CONTROL]->(c:ConfigMap {name: \"aws-auth\", namespace: \"kube-system\"}) return  x.name, role.name"
+  - name: Role can modify webhooks
+    query: "MATCH (x)-[b:ROLE_BINDING]->(role)-[r:`CREATE`|`UPDATE`|PATCH|FULL_CONTROL]->(y) WHERE y.kind in [\"validatingwebhookconfiguration\", \"mutatingwebhookconfiguration\"] RETURN  x.name, role.name, y.name"
+  - name: Role has cross-namespace access
+    query: "MATCH (x)-[r {kind: \"RoleBinding\"}]->(y) WHERE x.namespace <> y.namespace RETURN x.name, x.namespace, y.name, y.namespace"
+  - name: Subject bound to privileged role
+    query: "MATCH (subject)-[r:ROLE_BINDING]->(role:ClusterRole) WHERE role.name IN [\"cluster-admin\", \"admin\", \"edit\"] RETURN subject.name, role.name"
