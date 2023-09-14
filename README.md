@@ -15,7 +15,10 @@ pip install -r requirements.txt
 
 ## Neo4j
 
-Konstellation uses Neo4j as its backend database. [Neo4j Desktop](https://neo4j.com/download/) is the preferred installation method for Neo4j. Installation instructions are [here](https://neo4j.com/docs/desktop-manual/current/installation/download-installation/). 
+Konstellation uses Neo4j as its backend database. 
+
+### Neo4j Desktop
+[Neo4j Desktop](https://neo4j.com/download/) is the preferred installation method for Neo4j. Installation instructions are [here](https://neo4j.com/docs/desktop-manual/current/installation/download-installation/). 
 
 After installing Neo4j Desktop, create a new project for Konstellation to house the database and configuration settings. When [creating a new database](https://neo4j.com/developer/neo4j-desktop/#desktop-create-DBMS), use a 4.x version that is greater than or equal to 4.4.
 
@@ -34,6 +37,19 @@ dbms.memory.heap.max_size=16G
 Note: The `push` operation can require a large amount of memory when processing large datasets. Praetorian has experienced heap sizes of 10G when processing large Kubernetes clusters. Setting an appropriate `dbms.memory.heap.max_size` will keep the import process from crashing.
 
 Finally, after setting all of the configuration options, restart the DBMS if it is currently running so all setup tasks are loaded into the running DBMS.
+
+### Neo4j Docker
+Alternatively, run Neo4j using the [Neo4j Docker image](https://hub.docker.com/_/neo4j/) with the following command.
+
+```bash
+docker run -p 7474:7474 -p 7687:7687 -v /data:/var/lib/neo4j/import/data -v $PWD/plugins:/plugins --name neo4j-apoc -e NEO4J_apoc_export_file_enabled=true -e NEO4J_apoc_import_file_enabled=true -e NEO4J_apoc_import_file_use__neo4j__config=true -e NEO4JLABS_PLUGINS=\[\"apoc\"\] -e NEO4J_dbms_security_procedures_unrestricted=apoc.\\\* -e NEO4J_apoc_import_file_enabled=true neo4j:4.4.11
+```
+
+Note: In this example, the Konstellation enumeration data is stored in a folder named konstellation_data inside of the /var/lib/neo4j/import/data directory. To push data to Neo4j in this scenario, use the following command.
+
+```bash
+python3 konstellation.py k8s push --enum /var/lib/neo4j/import/data/konstellation_data/ --neo4juser <user> --neo4jpass <password>
+```
 
 # Usage
 
