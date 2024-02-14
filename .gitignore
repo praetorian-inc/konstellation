@@ -1,0 +1,5 @@
+venv
+results/*
+.vscode/*
+*-enum/
+*-results/
