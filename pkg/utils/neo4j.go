@@ -2,10 +2,9 @@ package konstellation
 
 import (
 	"context"
-	"os"
 
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
-	"github.com/sirupsen/logrus"
+	k "github.com/praetorian-inc/konstellation/pkg/neo4j"
 	"github.com/spf13/cobra"
 )
 
@@ -16,18 +15,13 @@ func Neo4jSetup(ctx context.Context, cmd *cobra.Command) neo4j.DriverWithContext
 	password, _ := cmd.Flags().GetString("neo4j-pass")
 
 	//fmt.Printf("uri: %s, user: %s, password: %s\n", uri, user, password)
-	driver, err := neo4j.NewDriverWithContext(uri, neo4j.BasicAuth(user, password, ""))
 
-	if err != nil {
-		logrus.Errorf("Exception: %v", err)
-		os.Exit(1)
-	}
+	driver := k.New(
+		k.WithContext(ctx),
+		k.WithHost(uri),
+		k.WithUser(user),
+		k.WithPassword(password),
+	)
 
-	err = driver.VerifyConnectivity(ctx)
-	if err != nil {
-		logrus.Errorf("Exception: %v", err)
-		os.Exit(1)
-	}
-
-	return driver
+	return driver.Driver
 }

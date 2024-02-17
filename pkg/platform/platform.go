@@ -11,12 +11,14 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync"
 
 	"io/ioutil"
 
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
+	kneo4j "github.com/praetorian-inc/konstellation/pkg/neo4j"
 	utils "github.com/praetorian-inc/konstellation/pkg/utils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -119,76 +121,66 @@ func (p *Platform) Push(ctx context.Context) {
 	}
 }
 
-func (p *Platform) pushNodes(ctx context.Context) {
+func (p *Platform) pushNodes(ctx context.Context) error {
+	runtime.GOMAXPROCS(4)
 	logrus.SetLevel(logrus.TraceLevel)
 	logrus.SetLevel(logrus.DebugLevel)
 	logrus.Debug("Pushing nodes")
-	enumPath, _ := utils.GetDirectoryPath(p.cmd, "enum", "k8s-enum")
-	files, err := os.ReadDir(enumPath)
+
+	files, err := p.getEnumFiles()
 	if err != nil {
-		logrus.Errorf("Failed to read directory: %v", err)
-		return
+		return err
 	}
 
-	for _, file := range files {
-		if filepath.Ext(file.Name()) == ".json" {
-			filePath := filepath.Join(enumPath, file.Name())
-			data, err := os.ReadFile(filePath)
-			if err != nil {
-				logrus.Errorf("Failed to read file: %v", err)
-				continue
-			}
+	for _, filePath := range files {
 
-			template, _ := p.getMappingValue(file.Name(), "template")
-			jsonPath, _ := p.getMappingValue(file.Name(), "JsonPath")
-			labelField, _ := p.getMappingValue(file.Name(), "LabelField")
-			label, _ := p.getMappingValue(file.Name(), "Label")
-			nameField, _ := p.getMappingValue(file.Name(), "NameField")
+		data, err := os.ReadFile(filePath)
+		if err != nil {
+			logrus.Errorf("Failed to read file: %v", err)
+			continue
+		}
 
-			logrus.Trace("template: ", template)
-			logrus.Trace("jsonPath: ", jsonPath)
-			logrus.Trace("labelField: ", labelField)
-			logrus.Trace("label: ", label)
-			logrus.Trace("nameField: ", nameField)
-			//p.getMappingValue(file, "labelField")
-			/*
-				kind, exists := jsonDataMap[p.config.mappings]
-				if !exists {
-					log.Fatal("Items does not exist in jsonData")
+		file := filepath.Base(filePath)
+		// TODO implement template usage
+		//template, _ := p.getMappingValue(file.Name(), "template")
+		jsonPath, _ := p.getMappingValue(file, "JsonPath")
+		labelField, _ := p.getMappingValue(file, "LabelField")
+		label, _ := p.getMappingValue(file, "Label")
+		nameField, _ := p.getMappingValue(file, "NameField")
+
+		itemsSlice, err := getItems(data, jsonPath)
+		if err != nil {
+			logrus.Errorf("Failed to get items: %v", err)
+			continue
+		}
+		logrus.Infof("Parsed JSON file: %v", file)
+
+		var itemLabel string
+		var nodeChannel = make(chan neo4j.Node, 1)
+		//var errorChannel = make(error, 1)
+		var resultsChannel = make(chan any, 1)
+		wg := sync.WaitGroup{}
+
+		for i := 0; i < 10; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for node := range nodeChannel {
+					rc, err := p.insertNode(ctx, node)
+					if err != nil {
+						logrus.Errorf("Failed to insert node: %v", err)
+						continue
+					}
+					resultsChannel <- rc
 				}
-			*/
+			}()
+		}
 
-			// Parse JSON using jsonPath
-			filtered, err := utils.FilterJson(data, jsonPath)
-			if err != nil {
-				logrus.Errorf("Failed to filter JSON: %v", err)
-				continue
-			}
-
-			//fmt.Println("jsonPath: ", filtered)
-			var items interface{}
-			err = json.Unmarshal(filtered, &items)
-			if err != nil {
-				logrus.Errorf("Failed to parse JSON: %v", err)
-				continue
-			}
-			logrus.Infof("Parsed JSON file: %v", file.Name())
-
-			itemsSlice, ok := items.([]interface{})
-
-			if !ok {
-				log.Fatal("Could not assert items to slice")
-			}
-
-			logrus.Debug("Number of items: ", len(itemsSlice))
-
-			var itemLabel string
-			//TODO make the channel size configurable
-			var nodeChannel = make(chan neo4j.Node, 1)
-			var wg sync.WaitGroup
-
-			// Iterate over items
+		// Iterate over items
+		go func() {
 			for _, item := range itemsSlice {
+				//TODO make the channel size configurable
+
 				//TODO we've got j and item in this loop, which is confusing
 				j, err := json.Marshal(item)
 				// convert item to map/number of items
@@ -222,22 +214,81 @@ func (p *Platform) pushNodes(ctx context.Context) {
 				logrus.Tracef("Item name: %s", name)
 				item["name"] = string(name)
 
-				node := p.item2Node(item, itemLabel)
-				nodeChannel <- node
-				go p.insertNode(ctx, nodeChannel, wg)
+				node := kneo4j.Item2Node(item, itemLabel)
 				logrus.Trace(node)
 
+				nodeChannel <- node
+
 			}
-			wg.Wait()
+
 			close(nodeChannel)
+			wg.Wait()
+			close(resultsChannel)
 
+		}()
+
+		// consume the results
+		for range resultsChannel {
 		}
-
 	}
+
+	return nil
+}
+
+// getFilesEnum returns a list of file paths for JSON files in the "enum/k8s-enum" directory.
+// It uses the provided Platform's cmd field to get the directory path.
+// If there is an error while reading the directory or finding JSON files, it returns an error.
+func (p *Platform) getEnumFiles() ([]string, error) {
+
+	enumPath, _ := utils.GetDirectoryPath(p.cmd, "enum", "k8s-enum")
+	files, err := os.ReadDir(enumPath)
+	if err != nil {
+		return nil, err
+	}
+
+	var fileNames []string
+	for _, file := range files {
+		if filepath.Ext(file.Name()) == ".json" {
+			filePath := filepath.Join(enumPath, file.Name())
+			fileNames = append(fileNames, filePath)
+		}
+	}
+
+	return fileNames, nil
+}
+
+// getItems parses the given JSON data using the provided jsonPath and returns a slice of items.
+// It filters the JSON data based on the jsonPath, unmarshals the filtered data into an interface{},
+// and asserts it to a slice of interfaces. It returns the items slice and any error encountered during the process.
+func getItems(data []byte, jsonPath string) (itemsSlice []interface{}, err error) {
+
+	// Parse JSON using jsonPath
+	filtered, err := utils.FilterJson(data, jsonPath)
+	if err != nil {
+		logrus.Errorf("Failed to filter JSON: %v", err)
+		return nil, err
+	}
+
+	//fmt.Println("jsonPath: ", filtered)
+	var items interface{}
+	err = json.Unmarshal(filtered, &items)
+	if err != nil {
+		logrus.Errorf("Failed to parse JSON: %v", err)
+		return nil, err
+	}
+
+	itemsSlice, ok := items.([]interface{})
+
+	if !ok {
+		log.Fatal("Could not assert items to slice")
+	}
+
+	logrus.Debug("Number of items: ", len(itemsSlice))
+
+	return itemsSlice, nil
 }
 
 func (p *Platform) getMappingValue(fileName string, key string) (string, error) {
-	mapping := Mapping{}
 
 	mapping, ok := p.Config.Mappings[fileName]
 	if !ok {
@@ -253,64 +304,59 @@ func (p *Platform) getMappingValue(fileName string, key string) (string, error) 
 	if !fieldVal.IsValid() {
 		return "", fmt.Errorf("Field %v does not exist", key)
 	}
+
+	logrus.Trace("file: %v, key: %v, value: %v", fileName, key, fieldVal)
+
 	return fmt.Sprintf("%v", fieldVal), nil
 }
 
-func (p *Platform) item2Node(item map[string]interface{}, label string) neo4j.Node {
-	flat := utils.FlattenMap(item)
-	node := neo4j.Node{Labels: []string{label}, Props: flat}
-	logrus.Trace(node)
-	return node
-}
-
-func (p *Platform) insertNode(ctx context.Context, nodeChannel <-chan neo4j.Node, wg sync.WaitGroup) {
-	wg.Add(1)
-	if nodeChannel == nil {
-		logrus.Error("Node channel is nil")
-		return
-	}
+func (p *Platform) insertNode(ctx context.Context, node neo4j.Node) (chan any, error) {
+	errorChannel := make(chan error, 1)
+	anyChannel := make(chan any, 1)
 
 	err := p.driver.VerifyConnectivity(ctx)
 	if err != nil {
 		logrus.Errorf("Exception: %v", err)
-		return
+		errorChannel <- err
 	}
 
 	session := p.driver.NewSession(ctx, neo4j.SessionConfig{})
+	defer session.Close(ctx)
+
 	if session == nil {
 		logrus.Error("Failed to create session")
-		return
+		errorChannel <- err
 	} else {
 		logrus.Trace("Created session")
 	}
 
-	for node := range nodeChannel {
-		//apoc.text.split(items.apiVersion, "/")[0] as specGroup
-
-		apiVersion := strings.Split(node.Props["apiVersion"].(string), "/")[0]
-		node.Props["spec.group"] = apiVersion
-		if node.Props["metadata.uid"] != nil {
-			node.Props["uid"] = node.Props["metadata.uid"]
-		}
-
-		node.Props["kind"] = strings.ToLower(node.Labels[0])
-
-		// TODO this needs to be converted to use the cypher queries defined in the config
-		_, err := session.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
-			_, err := tx.Run(ctx, "CREATE (n:"+node.Labels[0]+") SET n = $nodeProps", map[string]interface{}{
-				"labels":    node.Labels,
-				"nodeProps": node.Props,
-			})
-			return nil, err
-		})
-
-		if err != nil {
-			logrus.Errorf("Failed to insert node: %v", err)
-		}
+	apiVersion := strings.Split(node.Props["apiVersion"].(string), "/")[0]
+	node.Props["spec.group"] = apiVersion
+	if node.Props["metadata.uid"] != nil {
+		node.Props["uid"] = node.Props["metadata.uid"]
 	}
 
-	wg.Done()
-	defer session.Close(ctx)
+	node.Props["kind"] = strings.ToLower(node.Labels[0])
+
+	val, err := session.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
+		val, err := tx.Run(ctx, "CREATE (n:"+node.Labels[0]+") SET n = $nodeProps", map[string]interface{}{
+			"labels":    node.Labels,
+			"nodeProps": node.Props,
+		})
+		if err != nil {
+			return nil, err
+		}
+		return val, nil
+	})
+
+	if err != nil {
+		logrus.Errorf("Failed to insert node: %v", err)
+		return nil, err
+	}
+
+	anyChannel <- val
+
+	return anyChannel, nil
 }
 
 func (p *Platform) Query(ctx context.Context) {

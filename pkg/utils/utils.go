@@ -1,7 +1,6 @@
 package konstellation
 
 import (
-	"encoding/json"
 	"log"
 	"os"
 
@@ -38,24 +37,4 @@ func FilterJson(data []byte, jsonPath string, stripQuotes ...bool) ([]byte, erro
 	}
 
 	return filtered, err
-}
-
-func FlattenMap(m map[string]interface{}) map[string]interface{} {
-	flattened := make(map[string]interface{})
-	for k, v := range m {
-		switch val := v.(type) {
-		case map[string]interface{}:
-			flattenedMap := FlattenMap(val)
-			for fk, fv := range flattenedMap {
-				flattened[k+"."+fk] = fv
-			}
-		case string:
-			flattened[k] = val
-		default:
-			jsonString, _ := json.Marshal(val)
-			flattened[k] = string(jsonString)
-		}
-	}
-	logrus.Tracef("Flattened map: %v", flattened)
-	return flattened
 }
