@@ -70,7 +70,7 @@ func TestListFiles(t *testing.T) {
 }*/
 
 func TestGetMappingValue(t *testing.T) {
-	p := &Platform{
+	p := &BasePlatform{
 		Config: PlatformConfig{
 			Mappings: map[string]Mapping{
 				"default": {

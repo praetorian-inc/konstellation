@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 
+	neo4j "github.com/praetorian-inc/konstellation/pkg/neo4j"
 	p "github.com/praetorian-inc/konstellation/pkg/platform"
 	utils "github.com/praetorian-inc/konstellation/pkg/utils"
 	"github.com/praetorian-inc/konstellation/resources"
@@ -18,7 +19,7 @@ var (
 	defaultEnumOutput string = "k8s-enum"
 	enumOutput        string
 	kubeconfig        string
-	platform          p.Platform
+	platform          p.BasePlatform
 	queryName         string
 	relationshipName  string
 	resultsDir        string
@@ -109,20 +110,19 @@ func k8sQueryCmd() *cobra.Command {
 
 func doEnum(cmd *cobra.Command, args []string) {
 	fmt.Println("doEnum")
-	platform := p.NewPlatform("k8s", resources.K8sConfigPath)
-	platform.SetCmd(cmd)
+	k8s := p.NewK8s(resources.K8sConfigPath, cmd, nil)
 	ctx := context.Background()
 	//platform.SetDriver(utils.Neo4jSetup(ctx, cmd))
-	platform.Enum(ctx)
+	k8s.Enum(ctx)
 }
 
 func doPush(cmd *cobra.Command, args []string) {
 	//validateDefaultFlags(cmd)
 	logrus.Warn("push.doPush()")
 
-	platform := p.NewPlatform("k8s", resources.K8sConfigPath)
-	platform.Name = "k8s"
-	platform.SetCmd(cmd)
+	ctx := context.Background()
+	n := neo4j.Neo4jFromCLI(ctx, cmd)
+	platform := p.NewK8s(resources.K8sConfigPath, cmd, n)
 
 	defaultEnumOutput = platform.Name + "-enum"
 
@@ -135,18 +135,14 @@ func doPush(cmd *cobra.Command, args []string) {
 	}
 	logrus.Infof("Using enum directory %v", pushEnumOutput)
 
-	ctx := context.Background()
-	platform.SetDriver(utils.Neo4jSetup(ctx, cmd))
 	platform.Push(ctx)
 }
 
 func doQuery(cmd *cobra.Command, args []string) {
 	ctx := context.Background()
 	fmt.Println("doQuery")
-	platform := p.NewPlatform("k8s", resources.K8sConfigPath)
-	platform.Name = "k8s"
-	platform.SetCmd(cmd)
-	platform.SetDriver(utils.Neo4jSetup(ctx, cmd))
+	n := neo4j.Neo4jFromCLI(ctx, cmd)
+	platform := p.NewK8s(resources.K8sConfigPath, cmd, n)
 	defaultEnumOutput = platform.Name + "-enum"
 	platform.Query(ctx)
 

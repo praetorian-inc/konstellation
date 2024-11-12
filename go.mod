@@ -16,6 +16,11 @@ require (
 )
 
 require (
+	github.com/awalterschulze/gographviz v0.0.0-20200901124122-0eecad45bd71 // indirect
+	github.com/blushft/go-diagrams v0.0.0-20201006005127-c78c821223d9 // indirect
+)
+
+require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
