@@ -3,6 +3,7 @@ package adapters
 import (
 	"context"
 	"fmt"
+	"log"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -123,12 +124,12 @@ func (db *Neo4jDatabase) CreateRelationships(ctx context.Context, rels []*graph.
 	// Group relationships
 	groups := make(map[string][]*graph.Relationship)
 	for _, rel := range rels {
-		// log.Default().Println("rel.SartNode", rel.StartNode)
-		// log.Default().Println("rel.EndNode", rel.EndNode)
+		log.Default().Println("rel.SartNode", rel.StartNode)
+		log.Default().Println("rel.EndNode", rel.EndNode)
 		// log.Default().Println("rel.Type", rel.Type)
 		// log.Default().Println("rel.Properties", rel.Properties)
-		// log.Default().Println("rel.StartNode.UniqueKey", rel.StartNode.UniqueKey)
-		// log.Default().Println("rel.EndNode.UniqueKey", rel.EndNode.UniqueKey)
+		log.Default().Println("rel.StartNode.UniqueKey", rel.StartNode.UniqueKey)
+		log.Default().Println("rel.EndNode.UniqueKey", rel.EndNode.UniqueKey)
 		if len(rel.StartNode.UniqueKey) == 0 || len(rel.EndNode.UniqueKey) == 0 {
 			return nil, fmt.Errorf("both start and end nodes must have unique keys")
 		}
@@ -250,43 +251,12 @@ func (db *Neo4jDatabase) Close() error {
 	return nil
 }
 
-// propertyMapToString converts a map of properties to a Neo4j property string format
-// e.g., {arn: "...", name: "..."} becomes {arn: $arn, name: $name}
-// func propertyMapToString(props map[string]interface{}) string {
-// 	if len(props) == 0 {
-// 		return "{}"
-// 	}
-
-// 	parts := make([]string, 0, len(props))
-// 	for key := range props {
-// 		parts = append(parts, fmt.Sprintf("%s: $props.%s", key, key))
-// 	}
-// 	return "{" + strings.Join(parts, ", ") + "}"
-// }
-
-// Instead of using a struct as map key
-// type nodeGroupKey struct {
-// 	labels    []string
-// 	uniqueKey []string
-// }
-
 // Convert to using a string key that encodes the same information
 func getNodeGroupKey(labels []string, uniqueKey []string) string {
 	return fmt.Sprintf("%s||%s",
 		strings.Join(labels, ":"),
 		strings.Join(uniqueKey, ":"))
 }
-
-// func groupNodes(nodes []*graph.Node) map[string][]*graph.Node {
-// 	groups := make(map[string][]*graph.Node)
-
-// 	for _, node := range nodes {
-// 		key := getNodeGroupKey(node.Labels, node.UniqueKey)
-// 		groups[key] = append(groups[key], node)
-// 	}
-
-// 	return groups
-// }
 
 func buildBatchMergeQuery(labels []string, uniqueKey []string) string {
 	labelStr := strings.Join(labels, ":")
@@ -308,16 +278,6 @@ func buildBatchMergeQuery(labels []string, uniqueKey []string) string {
         ON CREATE SET n = node.properties, n._created = timestamp()
         ON MATCH SET n = node.properties, n._updated = timestamp()
     `, labelStr, mergeProps)
-}
-
-// Helper function to check if a slice contains a string
-func contains(slice []string, item string) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
-		}
-	}
-	return false
 }
 
 func nodeListToParams(nodes []*graph.Node) []map[string]interface{} {
@@ -397,7 +357,15 @@ func (db *Neo4jDatabase) initializeConstraints(ctx context.Context) error {
 }
 
 func buildRelationshipMergeQuery(relType string, startNode, endNode *graph.Node) string {
-	// Wrap each label in backticks and join them with ":"
+	// First, MATCH based on unique properties only, then add labels if needed
+
+	// Build the unique property criteria for starting node
+	startUnique := buildPropsString(startNode.UniqueKey, "rel.startProperties")
+
+	// Build the unique property criteria for ending node
+	endUnique := buildPropsString(endNode.UniqueKey, "rel.endProperties")
+
+	// Prepare labels for each node
 	startLabels := make([]string, len(startNode.Labels))
 	for i, label := range startNode.Labels {
 		startLabels[i] = "`" + label + "`"
@@ -408,29 +376,30 @@ func buildRelationshipMergeQuery(relType string, startNode, endNode *graph.Node)
 		endLabels[i] = "`" + label + "`"
 	}
 
-	// Determine the unique property for start node
-	startUnique := buildPropsString(startNode.UniqueKey, "rel.startProperties")
-
-	// Determine the unique property for end node
-	endUnique := buildPropsString(endNode.UniqueKey, "rel.endProperties")
+	startLabelString := strings.Join(startLabels, ":")
+	endLabelString := strings.Join(endLabels, ":")
 
 	return fmt.Sprintf(`
         UNWIND $rels as rel
-        MERGE (start:%s {%s})
-        ON CREATE SET start = rel.startProperties
-        ON MATCH SET start += rel.startProperties
-        MERGE (end:%s {%s})
-        ON CREATE SET end = rel.endProperties
-        ON MATCH SET end += rel.endProperties
+        MERGE (start {%s})
+        ON CREATE SET start = rel.startProperties, start:%s
+        ON MATCH SET start += rel.startProperties, start:%s
+        
+        MERGE (end {%s})
+        ON CREATE SET end = rel.endProperties, end:%s
+        ON MATCH SET end += rel.endProperties, end:%s
+        
         MERGE (start)-[r:`+"`%s`"+`]->(end)
         ON CREATE SET r = rel.properties, r._created = timestamp()
         ON MATCH SET r = rel.properties, r._updated = timestamp()
         RETURN count(r) as total
     `,
-		strings.Join(startLabels, ":"),
 		startUnique,
-		strings.Join(endLabels, ":"),
+		startLabelString,
+		startLabelString,
 		endUnique,
+		endLabelString,
+		endLabelString,
 		relType)
 }
 
