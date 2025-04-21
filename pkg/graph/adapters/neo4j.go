@@ -126,7 +126,7 @@ func (db *Neo4jDatabase) CreateRelationships(ctx context.Context, rels []*graph.
 	for _, rel := range rels {
 		log.Default().Println("rel.SartNode", rel.StartNode)
 		log.Default().Println("rel.EndNode", rel.EndNode)
-		// log.Default().Println("rel.Type", rel.Type)
+		log.Default().Println("rel.Type", rel.Type)
 		// log.Default().Println("rel.Properties", rel.Properties)
 		log.Default().Println("rel.StartNode.UniqueKey", rel.StartNode.UniqueKey)
 		log.Default().Println("rel.EndNode.UniqueKey", rel.EndNode.UniqueKey)
