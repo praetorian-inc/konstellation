@@ -9,7 +9,7 @@ replace github.com/praetorian-inc/nebula => /Users/zachgrace/tools/nebula
 require (
 	github.com/blushft/go-diagrams v0.0.0-20201006005127-c78c821223d9
 	github.com/neo4j/neo4j-go-driver/v5 v5.27.0
-	github.com/praetorian-inc/nebula v0.0.0-20250218091024-1831bd94eaee
+	github.com/praetorian-inc/nebula v0.0.0-20250312155925-2571108869b8
 	github.com/savaki/jq v0.0.0-20161209013833-0e6baecebbf8
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
