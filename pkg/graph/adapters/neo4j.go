@@ -50,6 +50,15 @@ func NewNeo4jDatabase(config *graph.Config) (*Neo4jDatabase, error) {
 	return db, nil
 }
 
+func (db *Neo4jDatabase) VerifyConnectivity(ctx context.Context) error {
+	err := db.driver.VerifyConnectivity(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to verify connectivity: %w", err)
+	}
+
+	return nil
+}
+
 // pkg/graph/adapters/neo4j/neo4j.go
 
 func (db *Neo4jDatabase) CreateNodes(ctx context.Context, nodes []*graph.Node) (*graph.BatchResult, error) {
@@ -225,10 +234,10 @@ func (db *Neo4jDatabase) Query(ctx context.Context, query string, params map[str
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 
-	records := make([]map[string]interface{}, 0)
+	records := make([]graph.Record, 0)
 	for result.Next(ctx) {
 		record := result.Record()
-		recordMap := make(map[string]interface{})
+		recordMap := make(graph.Record)
 		for i, key := range record.Keys {
 			recordMap[key] = record.Values[i]
 		}

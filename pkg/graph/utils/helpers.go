@@ -94,14 +94,31 @@ func UnescapeJSONString(s string) (string, error) {
 
 // ConvertAndFlatten converts an interface to JSON, flattens it, and returns a map
 // It handles special cases where Properties might be a string, array, or other types
-func ConvertAndFlatten(input interface{}) (map[string]interface{}, error) {
+// ConvertAndFlatten converts an interface to JSON, flattens it, and returns a map
+// It handles special cases where Properties might be a string, array, or other types
+func ConvertAndFlatten(input interface{}, keepAsJSON ...string) (map[string]interface{}, error) {
 	// For nil input, return empty map
 	if input == nil {
 		return make(map[string]interface{}), nil
 	}
 
+	// Convert keepAsJSON slice to map for faster lookup
+	keepJSONFields := make(map[string]bool)
+	for _, field := range keepAsJSON {
+		keepJSONFields[field] = true
+	}
+
 	// Handle the case where input is already a map
 	if m, ok := input.(map[string]interface{}); ok {
+		// Check for fields that should be kept as JSON strings
+		for field := range keepJSONFields {
+			if val, exists := m[field]; exists {
+				jsonStr, err := json.Marshal(val)
+				if err == nil {
+					m[field] = string(jsonStr)
+				}
+			}
+		}
 		return FlattenJSON(m), nil
 	}
 
@@ -123,6 +140,15 @@ func ConvertAndFlatten(input interface{}) (map[string]interface{}, error) {
 		// Try to unmarshal the string as JSON
 		var data map[string]interface{}
 		if err := json.Unmarshal([]byte(s), &data); err == nil {
+			// Check for fields that should be kept as JSON strings
+			for field := range keepJSONFields {
+				if val, exists := data[field]; exists {
+					jsonStr, err := json.Marshal(val)
+					if err == nil {
+						data[field] = string(jsonStr)
+					}
+				}
+			}
 			return FlattenJSON(data), nil
 		}
 
@@ -156,6 +182,16 @@ func ConvertAndFlatten(input interface{}) (map[string]interface{}, error) {
 		default:
 			// For primitives or other types
 			return map[string]interface{}{"value": v}, nil
+		}
+	}
+
+	// Check for fields that should be kept as JSON strings
+	for field := range keepJSONFields {
+		if val, exists := data[field]; exists {
+			jsonStr, err := json.Marshal(val)
+			if err == nil {
+				data[field] = string(jsonStr)
+			}
 		}
 	}
 

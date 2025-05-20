@@ -23,9 +23,10 @@ func NodeFromEnrichedResourceDescription(erd *types.EnrichedResourceDescription)
 	props["service"] = erd.Service()
 	props["arn"] = erd.Arn.String()
 	props["region"] = erd.Region
-	props["account"] = erd.AccountId
+	props["accountId"] = erd.AccountId
 	props["tags"] = stringify(erd.Tags())
 	props["type"] = erd.TypeName
+	props["identifier"] = erd.Identifier
 
 	// Check if this is a role resource and add Principal label
 	labels := []string{
@@ -50,8 +51,8 @@ func NodeFromEnrichedResourceDescription(erd *types.EnrichedResourceDescription)
 func NodeFromUserDL(user *types.UserDL) *graph.Node {
 
 	return &graph.Node{
-		Labels: []string{"User", "Principal"},
-		Properties: map[string]interface{}{
+		Labels: []string{"User", "Principal", "AWS::IAM::User"},
+		Properties: map[string]any{
 			"platform":                "aws",
 			"arn":                     user.Arn,
 			"userId":                  user.UserId,
@@ -71,7 +72,7 @@ func NodeFromUserDL(user *types.UserDL) *graph.Node {
 func NodeFromRoleDL(role *types.RoleDL) *graph.Node {
 
 	return &graph.Node{
-		Labels: []string{"Role", "Principal"},
+		Labels: []string{"Role", "Principal", "AWS::IAM::Role"},
 		Properties: map[string]interface{}{
 			"platform":                "aws",
 			"arn":                     role.Arn,
@@ -93,7 +94,7 @@ func NodeFromRoleDL(role *types.RoleDL) *graph.Node {
 func NodeFromGroupDL(group *types.GroupDL) *graph.Node {
 
 	return &graph.Node{
-		Labels: []string{"Group", "Principal"},
+		Labels: []string{"Group", "Principal", "AWS::IAM::Group"},
 		Properties: map[string]interface{}{
 			"platform":                "aws",
 			"groupName":               group.GroupName,
