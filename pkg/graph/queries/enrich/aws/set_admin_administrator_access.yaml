@@ -1,0 +1,9 @@
+name: Set Admin Administrator Access
+description: Sets the admin attribute to true for principals with AdministratorAccess policy
+impactedServices:
+  - IAM
+severity: Informational
+cypher: |
+  MATCH (p:Principal)
+  WHERE "arn:aws:iam::aws:policy/AdministratorAccess" IN p.attachedManagedPolicies
+  SET p.admin = true

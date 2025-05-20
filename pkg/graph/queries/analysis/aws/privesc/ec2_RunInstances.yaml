@@ -1,0 +1,33 @@
+name: EC2 RunInstances Privilege Escalation via PassRole
+description: Identifies IAM principals (users or roles) that can escalate privileges by launching new EC2 instances and passing an IAM role to them that has more permissions than the principal currently possesses.
+impactedServices:
+  - IAM
+  - EC2
+severity: High
+cypher: |
+  // Find the privilege escalation path in a single MATCH pattern
+  MATCH path = (ec2:Service {identifier: 'ec2.amazonaws.com'})<-[:`ec2:RunInstances`]-(p:Principal)-[:`iam:PassRole`]->(targetRole:Role)
+  WHERE
+    // Target role must have an instance profile
+    targetRole.instanceProfileList IS NOT NULL
+    AND targetRole.instanceProfileList <> '[]'
+    // Principal doesn't already have AdministratorAccess
+    AND (
+      CASE WHEN p.attachedManagedPolicies IS NULL THEN true 
+      ELSE NOT ANY(policy IN p.attachedManagedPolicies WHERE policy CONTAINS 'AdministratorAccess')
+      END
+    )
+    // Target role has policies not in principal's policies
+    AND (
+      CASE 
+        WHEN p.attachedManagedPolicies IS NULL AND targetRole.attachedManagedPolicies IS NOT NULL 
+          THEN true
+        WHEN p.attachedManagedPolicies IS NULL OR targetRole.attachedManagedPolicies IS NULL 
+          THEN false
+        ELSE ANY(policy IN targetRole.attachedManagedPolicies WHERE NOT policy IN p.attachedManagedPolicies)
+      END
+    )
+  
+  RETURN 
+    p.arn AS vulnerable,
+    path 

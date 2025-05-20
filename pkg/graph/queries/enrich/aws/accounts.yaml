@@ -1,0 +1,22 @@
+name: AWS Account Relationships
+description: Merges Account nodes based on account ID and creates BELONGS_TO relationships from principals to their accounts.
+impactedServices:
+  - IAM
+severity: Informational
+cypher: |
+  // First collect all unique accountIds, excluding the wildcard '*'
+  MATCH (p)
+  WHERE p.accountId IS NOT NULL AND p.accountId <> '*'
+  WITH DISTINCT p.accountId as accountId
+  
+  // Merge Account nodes (only once per unique accountId)
+  MERGE (a:Account {accountId: accountId})
+  ON CREATE SET a.created = timestamp()
+  
+  // In a separate step, create the BELONGS_TO relationships
+  WITH a
+  MATCH (p)
+  WHERE p.accountId = a.accountId
+  MERGE (p)-[:BELONGS_TO]->(a)
+  
+  RETURN count(a) as AccountsProcessed

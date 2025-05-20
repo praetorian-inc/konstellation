@@ -1,0 +1,17 @@
+name: User Inline IAM Wildcard
+description: Identifies IAM Users that have inline policies with IAM wildcard (iam:*) actions.
+impactedServices:
+  - IAM
+severity: High
+cypher: |
+  // Find IAM Users with IAM wildcard inline policies
+  MATCH (user:`AWS::IAM::User`) 
+  WHERE user.userPolicyList IS NOT NULL 
+    AND user.userPolicyList <> 'null'
+    AND user.userPolicyList <> '[]'
+    // Check for IAM wildcard action with any wildcard resource
+    AND user.userPolicyList CONTAINS '"Action":["iam:*"]' 
+    AND (user.userPolicyList CONTAINS '"Resource":["*"]' OR user.userPolicyList CONTAINS 'arn:aws:iam::*')
+  RETURN 
+      user.arn AS vulnerable, 
+      user.userPolicyList AS policy 
