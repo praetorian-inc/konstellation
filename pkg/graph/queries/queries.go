@@ -26,7 +26,7 @@ func init() {
 	LoadedQueries = make(map[string]Query)
 	var loadErrors []string
 
-	slog.Info("Loading AWS enrichment queries...")
+	slog.Debug("Loading AWS enrichment queries...")
 	enrichQueries, err := loadQueriesFromFS(awsEnrichFS, "aws", "enrich", "enrich/aws")
 	if err != nil {
 		loadErrors = append(loadErrors, fmt.Sprintf("error loading AWS enrichment queries: %v", err))
@@ -36,7 +36,7 @@ func init() {
 		slog.Debug("Loaded enrichment query", "id", id, "name", q.Name)
 	}
 
-	slog.Info("Loading AWS analysis queries...")
+	slog.Debug("Loading AWS analysis queries...")
 	analysisQueries, err := loadQueriesFromFS(awsQueriesFS, "aws", "analysis", "analysis/aws")
 	if err != nil {
 		loadErrors = append(loadErrors, fmt.Sprintf("error loading AWS analysis queries: %v", err))
@@ -50,7 +50,7 @@ func init() {
 		slog.Error("Failed to load some queries", "errors", strings.Join(loadErrors, "; "))
 		// Depending on requirements, you might want to panic here or handle it differently
 	}
-	slog.Info("Query loading complete", "totalQueries", len(LoadedQueries))
+	slog.Debug("Query loading complete", "totalQueries", len(LoadedQueries))
 }
 
 func loadQueriesFromFS(targetFS embed.FS, platform, queryType, embedBasePath string) (map[string]Query, error) {
