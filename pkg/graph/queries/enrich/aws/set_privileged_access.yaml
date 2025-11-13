@@ -1,0 +1,28 @@
+name: Set Privileged Access
+description: Sets the privileged attribute to a list of elevated access policies attached to principals
+impactedServices:
+  - IAM
+severity: Informational
+cypher: |
+  MATCH (p:Principal)
+  WHERE p.attachedManagedPolicies IS NOT NULL
+  WITH p, [policy IN p.attachedManagedPolicies WHERE policy IN [
+    "arn:aws:iam::aws:policy/PowerUserAccess",
+    "arn:aws:iam::aws:policy/DatabaseAdministrator",
+    "arn:aws:iam::aws:policy/NetworkAdministrator",
+    "arn:aws:iam::aws:policy/SystemAdministrator",
+    "arn:aws:iam::aws:policy/SecurityAudit",
+    "arn:aws:iam::aws:policy/job-function/SupportUser",
+    "arn:aws:iam::aws:policy/AmazonEC2FullAccess",
+    "arn:aws:iam::aws:policy/AmazonS3FullAccess",
+    "arn:aws:iam::aws:policy/AWSLambda_FullAccess",
+    "arn:aws:iam::aws:policy/AmazonRDSFullAccess",
+    "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess",
+    "arn:aws:iam::aws:policy/CloudWatchFullAccess",
+    "arn:aws:iam::aws:policy/AWSCloudFormationFullAccess",
+    "arn:aws:iam::aws:policy/SecretsManagerReadWrite",
+    "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy",
+    "arn:aws:iam::aws:policy/AmazonECSTaskExecutionRolePolicy"
+  ]] AS privilegedPolicies
+  WHERE size(privilegedPolicies) > 0
+  SET p.privileged = privilegedPolicies

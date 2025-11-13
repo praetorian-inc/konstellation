@@ -6,4 +6,5 @@ severity: Informational
 cypher: |
   MATCH (p:Principal)
   WHERE "arn:aws:iam::aws:policy/AdministratorAccess" IN p.attachedManagedPolicies
+     OR "arn:aws:iam::aws:policy/IAMFullAccess" IN p.attachedManagedPolicies
   SET p.admin = true
