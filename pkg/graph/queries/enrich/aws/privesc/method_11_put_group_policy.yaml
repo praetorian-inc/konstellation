@@ -1,0 +1,31 @@
+name: Privesc Method 11 - PutGroupPolicy
+description: Creates CAN_PRIVESC relationship when a user can put inline policies on groups they belong to
+impactedServices:
+  - IAM
+severity: High
+cypher: |
+  MATCH (principal)-[:`iam:PutGroupPolicy`]->(group:`IAM::Group`)
+  WHERE principal.admin IS NULL
+    AND group.identifier IN principal.groupList
+
+  // Create self-escalation relationship via group
+  MERGE (principal)-[privesc:CAN_PRIVESC]->(principal)
+  ON CREATE SET
+    privesc.method = "Method-11-PutGroupPolicy",
+    privesc.requires = ["iam:PutGroupPolicy"],
+    privesc.service = "IAM",
+    privesc.targetType = "Self",
+    privesc.targetGroup = group.arn
+  ON MATCH SET
+    privesc.method = CASE
+      WHEN NOT privesc.method CONTAINS "Method-11-PutGroupPolicy"
+      THEN privesc.method + ",Method-11-PutGroupPolicy"
+      ELSE privesc.method
+    END,
+    privesc.targetGroup = CASE
+      WHEN privesc.targetGroup IS NULL THEN group.arn
+      WHEN NOT privesc.targetGroup CONTAINS group.arn THEN privesc.targetGroup + "," + group.arn
+      ELSE privesc.targetGroup
+    END
+
+  RETURN count(DISTINCT principal) AS PrincipalsWithPrivesc

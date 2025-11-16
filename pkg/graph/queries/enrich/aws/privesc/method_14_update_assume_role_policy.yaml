@@ -1,0 +1,26 @@
+name: Privesc Method 14 - UpdateAssumeRolePolicy
+description: Creates CAN_PRIVESC relationship when a principal can update trust policies of privileged roles
+impactedServices:
+  - IAM
+severity: High
+cypher: |
+  MATCH (principal)-[:`iam:UpdateAssumeRolePolicy`]->(targetRole:`IAM::Role`)
+  WHERE principal.admin IS NULL
+    AND targetRole.admin = true
+    AND EXISTS((principal)-[:`sts:AssumeRole`]->(targetRole))
+
+  // Create the privesc relationship
+  MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)
+  ON CREATE SET
+    privesc.method = "Method-14-UpdateAssumeRolePolicy",
+    privesc.requires = ["iam:UpdateAssumeRolePolicy", "sts:AssumeRole"],
+    privesc.service = "IAM",
+    privesc.targetType = "Role"
+  ON MATCH SET
+    privesc.method = CASE
+      WHEN NOT privesc.method CONTAINS "Method-14-UpdateAssumeRolePolicy"
+      THEN privesc.method + ",Method-14-UpdateAssumeRolePolicy"
+      ELSE privesc.method
+    END
+
+  RETURN count(DISTINCT principal) AS PrincipalsWithPrivesc

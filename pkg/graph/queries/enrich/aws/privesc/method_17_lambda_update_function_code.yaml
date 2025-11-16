@@ -1,0 +1,35 @@
+name: Privesc Method 17 - Lambda UpdateFunctionCode
+description: Creates CAN_PRIVESC relationship when a principal can update Lambda function code with privileged roles
+impactedServices:
+  - Lambda
+severity: High
+cypher: |
+  MATCH (principal)-[:`lambda:UpdateFunctionCode`]->(lambda:`Lambda::Function`)
+  WHERE principal.admin IS NULL
+    AND lambda.Role IS NOT NULL
+
+  // Match the actual role by ARN
+  MATCH (attachedRole:`IAM::Role` {arn: lambda.Role})
+  WHERE attachedRole.admin = true
+
+  // Create the privesc relationship to the Lambda's attached role
+  MERGE (principal)-[privesc:CAN_PRIVESC]->(attachedRole)
+  ON CREATE SET
+    privesc.method = "Method-17-Lambda-UpdateCode",
+    privesc.requires = ["lambda:UpdateFunctionCode"],
+    privesc.service = "Lambda",
+    privesc.targetType = "Role",
+    privesc.lambdaArn = lambda.arn
+  ON MATCH SET
+    privesc.method = CASE
+      WHEN NOT privesc.method CONTAINS "Method-17-Lambda-UpdateCode"
+      THEN privesc.method + ",Method-17-Lambda-UpdateCode"
+      ELSE privesc.method
+    END,
+    privesc.lambdaArn = CASE
+      WHEN privesc.lambdaArn IS NULL THEN lambda.arn
+      WHEN NOT privesc.lambdaArn CONTAINS lambda.arn THEN privesc.lambdaArn + "," + lambda.arn
+      ELSE privesc.lambdaArn
+    END
+
+  RETURN count(DISTINCT principal) AS PrincipalsWithPrivesc

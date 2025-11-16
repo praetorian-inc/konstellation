@@ -1,0 +1,25 @@
+name: Privesc Method 10 - PutUserPolicy
+description: Creates CAN_PRIVESC relationship when a user can put inline policies on itself
+impactedServices:
+  - IAM
+severity: High
+cypher: |
+  MATCH (principal:`IAM::User`)-[:`iam:PutUserPolicy`]->(user:`IAM::User`)
+  WHERE principal.admin IS NULL
+    AND principal.arn = user.arn
+
+  // Create self-escalation relationship
+  MERGE (principal)-[privesc:CAN_PRIVESC]->(principal)
+  ON CREATE SET
+    privesc.method = "Method-10-PutUserPolicy",
+    privesc.requires = ["iam:PutUserPolicy"],
+    privesc.service = "IAM",
+    privesc.targetType = "Self"
+  ON MATCH SET
+    privesc.method = CASE
+      WHEN NOT privesc.method CONTAINS "Method-10-PutUserPolicy"
+      THEN privesc.method + ",Method-10-PutUserPolicy"
+      ELSE privesc.method
+    END
+
+  RETURN count(DISTINCT principal) AS PrincipalsWithPrivesc

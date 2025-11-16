@@ -1,0 +1,28 @@
+name: Privesc Method 19 - Glue UpdateDevEndpoint
+description: Creates CAN_PRIVESC relationship for principals with glue UpdateDevEndpoint capability (requires manual validation)
+impactedServices:
+  - Glue
+severity: Medium
+cypher: |
+  MATCH (principal)
+  WHERE principal.admin IS NULL
+    AND (EXISTS((principal)-[:`glue:UpdateDevEndpoint`]->())
+         OR ANY(policy IN principal.attachedManagedPolicies WHERE
+           policy CONTAINS 'AWSGlueConsoleFullAccess'
+           OR policy CONTAINS 'GlueFullAccess'))
+
+  // Create a self-loop indicating potential privesc (requires manual validation)
+  MERGE (principal)-[privesc:CAN_PRIVESC]->(principal)
+  ON CREATE SET
+    privesc.method = "Method-19-Glue-UpdateDevEndpoint",
+    privesc.requires = ["glue:UpdateDevEndpoint"],
+    privesc.service = "Glue",
+    privesc.targetType = "ManualValidationRequired"
+  ON MATCH SET
+    privesc.method = CASE
+      WHEN NOT privesc.method CONTAINS "Method-19-Glue-UpdateDevEndpoint"
+      THEN privesc.method + ",Method-19-Glue-UpdateDevEndpoint"
+      ELSE privesc.method
+    END
+
+  RETURN count(DISTINCT principal) AS PrincipalsWithPrivesc

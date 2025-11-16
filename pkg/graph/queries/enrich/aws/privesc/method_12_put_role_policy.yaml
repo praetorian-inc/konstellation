@@ -1,0 +1,29 @@
+name: Privesc Method 12 - PutRolePolicy
+description: Creates CAN_PRIVESC relationship when a principal can put inline policies on roles they can access
+impactedServices:
+  - IAM
+severity: High
+cypher: |
+  MATCH (principal)-[:`iam:PutRolePolicy`]->(role:Role)
+  WHERE principal.admin IS NULL
+    AND (principal.arn = role.arn
+         OR EXISTS {
+           MATCH (principal)-[r:`sts:AssumeRole`]->(role)
+           WHERE r.Allowed = true
+         })
+
+  // Create the privesc relationship
+  MERGE (principal)-[privesc:CAN_PRIVESC]->(role)
+  ON CREATE SET
+    privesc.method = "Method-12-PutRolePolicy",
+    privesc.requires = ["iam:PutRolePolicy"],
+    privesc.service = "IAM",
+    privesc.targetType = CASE WHEN principal.arn = role.arn THEN "Self" ELSE "Role" END
+  ON MATCH SET
+    privesc.method = CASE
+      WHEN NOT privesc.method CONTAINS "Method-12-PutRolePolicy"
+      THEN privesc.method + ",Method-12-PutRolePolicy"
+      ELSE privesc.method
+    END
+
+  RETURN count(DISTINCT principal) AS PrincipalsWithPrivesc
