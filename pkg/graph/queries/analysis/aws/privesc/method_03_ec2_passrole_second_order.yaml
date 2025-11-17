@@ -14,12 +14,4 @@ cypher: |
 
   WITH principal, intermediateRole, collect(DISTINCT target) AS targets
 
-  RETURN principal.arn AS PrincipalARN,
-         intermediateRole.arn AS IntermediateRole,
-         [t IN targets | t.arn] AS CanPrivescTo,
-         [t IN targets | CASE
-           WHEN t:User THEN 'User'
-           WHEN t:Role THEN 'Role'
-           ELSE 'Unknown'
-         END] AS TargetTypes,
-         'Method 3: PassRole to EC2 (second-order privesc)' AS Method
+  RETURN principal.arn AS vulnerable

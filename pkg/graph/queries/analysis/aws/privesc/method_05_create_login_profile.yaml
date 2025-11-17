@@ -23,7 +23,4 @@ cypher: |
       ELSE privesc.method
     END
 
-  RETURN principal.arn AS PrincipalARN,
-         collect(DISTINCT user.arn) AS UsersCanCreateLoginProfileFor,
-         count(user) AS RelationshipsCreated,
-         'Method 5: Create Login Profile' AS Method
+  RETURN principal.arn AS vulnerable

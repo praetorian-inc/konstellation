@@ -31,7 +31,4 @@ cypher: |
     END
 
   WITH principal, collect(DISTINCT targetRole) AS targetRoles
-  RETURN principal.arn AS PrincipalARN,
-         [role IN targetRoles | role.arn] AS RolesCanPassToEC2,
-         size(targetRoles) AS RelationshipsCreated,
-         'Method 3: PassRole to EC2' AS Method
+  RETURN principal.arn AS vulnerable

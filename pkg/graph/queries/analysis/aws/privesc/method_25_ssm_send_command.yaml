@@ -35,4 +35,4 @@ cypher: |
       ELSE privesc.instanceId
     END
 
-  RETURN count(DISTINCT principal) AS PrincipalsWithPrivesc
+  RETURN principal.arn AS vulnerable

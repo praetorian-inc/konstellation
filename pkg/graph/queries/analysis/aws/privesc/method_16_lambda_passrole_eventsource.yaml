@@ -29,4 +29,4 @@ cypher: |
       ELSE privesc.method
     END
 
-  RETURN count(DISTINCT principal) AS PrincipalsWithPrivesc
+  RETURN principal.arn AS vulnerable

@@ -9,7 +9,4 @@ cypher: |
 
   WITH principal, intermediateUser, collect(DISTINCT target) AS targets
 
-  RETURN principal.arn AS PrincipalARN,
-         intermediateUser.arn AS IntermediateUser,
-         [t IN targets | t.arn] AS CanPrivescTo,
-         'Method 5: Create Login Profile (second-order privesc)' AS Method
+  RETURN principal.arn AS vulnerable
