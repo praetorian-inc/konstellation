@@ -29,4 +29,5 @@ cypher: |
       ELSE privesc.targetGroup
     END
 
+  WITH principal, collect(DISTINCT group) AS groups
   RETURN principal.arn AS vulnerable
