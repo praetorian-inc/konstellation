@@ -22,4 +22,5 @@ cypher: |
       ELSE privesc.method
     END
 
+  WITH principal, collect(DISTINCT user) AS users
   RETURN principal.arn AS vulnerable
