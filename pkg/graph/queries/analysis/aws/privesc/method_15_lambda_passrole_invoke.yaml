@@ -29,5 +29,5 @@ cypher: |
       ELSE privesc.method
     END
 
-  WITH principal, collect(DISTINCT role) AS roles
+  WITH principal, collect(DISTINCT targetRole) AS targetRoles
   RETURN principal.arn AS vulnerable
