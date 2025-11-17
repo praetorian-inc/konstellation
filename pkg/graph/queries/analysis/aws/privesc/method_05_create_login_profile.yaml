@@ -23,4 +23,7 @@ cypher: |
       ELSE privesc.method
     END
 
-  RETURN count(DISTINCT principal) AS PrincipalsWithPrivesc
+  RETURN principal.arn AS PrincipalARN,
+         collect(DISTINCT user.arn) AS UsersCanCreateLoginProfileFor,
+         count(user) AS RelationshipsCreated,
+         'Method 5: Create Login Profile' AS Method

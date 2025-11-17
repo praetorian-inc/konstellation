@@ -1,0 +1,15 @@
+name: Privesc Method 5 - CreateLoginProfile (Second-Order)
+description: Detects second-order privilege escalation where a principal can create login profiles for users that have existing CAN_PRIVESC relationships
+impactedServices:
+  - IAM
+severity: High
+cypher: |
+  MATCH (principal)-[:`iam:CreateLoginProfile`]->(intermediateUser:`IAM::User`)-[:CAN_PRIVESC]->(target)
+  WHERE principal.admin IS NULL
+
+  WITH principal, intermediateUser, collect(DISTINCT target) AS targets
+
+  RETURN principal.arn AS PrincipalARN,
+         intermediateUser.arn AS IntermediateUser,
+         [t IN targets | t.arn] AS CanPrivescTo,
+         'Method 5: Create Login Profile (second-order privesc)' AS Method

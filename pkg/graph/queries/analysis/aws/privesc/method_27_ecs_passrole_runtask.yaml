@@ -28,4 +28,8 @@ cypher: |
       ELSE privesc.method
     END
 
-  RETURN count(DISTINCT principal) AS PrincipalsWithPrivesc
+  WITH principal, collect(DISTINCT targetRole) AS targetRoles
+  RETURN principal.arn AS PrincipalARN,
+         [role IN targetRoles | role.arn] AS RolesCanPassToECS,
+         size(targetRoles) AS RelationshipsCreated,
+         'Method 27: PassRole to ECS Tasks' AS Method
