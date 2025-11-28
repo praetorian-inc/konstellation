@@ -6,15 +6,9 @@ impactedServices:
 severity: High
 order: 112
 cypher: |
-  MATCH (principal)-[:`sts:AssumeRole`]->(targetRole:`IAM::Role`)
+  MATCH (principal)-[assume:`sts:AssumeRole`]->(targetRole:`IAM::Role`)
   WHERE principal.admin IS NULL
-    AND targetRole.assumeRolePolicyDoc IS NOT NULL
-    AND (
-      targetRole.assumeRolePolicyDoc CONTAINS principal.arn
-      OR (targetRole.trustsAccountRoot = true
-          AND principal.arn STARTS WITH targetRole.arn[0..26])
-      OR targetRole.trustsPublic = true
-    )
+    AND assume.Allowed = true
 
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)
@@ -22,9 +16,7 @@ cypher: |
     privesc.method = "Method-13-AssumeRole",
     privesc.requires = ["sts:AssumeRole"],
     privesc.service = "STS",
-    privesc.targetType = "Role",
-    privesc.discovered = datetime(),
-    privesc.trustsPublic = (targetRole.trustsPublic = true)
+    privesc.targetType = "Role"
   ON MATCH SET
     privesc.method = CASE
       WHEN NOT privesc.method CONTAINS "Method-13-AssumeRole"
