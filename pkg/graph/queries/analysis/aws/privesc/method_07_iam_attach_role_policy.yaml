@@ -1,4 +1,4 @@
-name: Privesc Method 9 - AttachRolePolicy
+name: Privesc Method 7 - AttachRolePolicy
 description: Creates CAN_PRIVESC relationship when a principal can attach policies to roles they can access
 impactedServices:
   - IAM
@@ -14,14 +14,14 @@ cypher: |
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(role)
   ON CREATE SET
-    privesc.method = "Method-09-AttachRolePolicy",
+    privesc.method = "Method-07-AttachRolePolicy",
     privesc.requires = ["iam:AttachRolePolicy"],
     privesc.service = "IAM",
     privesc.targetType = CASE WHEN principal.arn = role.arn THEN "Self" ELSE "Role" END
   ON MATCH SET
     privesc.method = CASE
-      WHEN NOT privesc.method CONTAINS "Method-09-AttachRolePolicy"
-      THEN privesc.method + ",Method-09-AttachRolePolicy"
+      WHEN NOT privesc.method CONTAINS "Method-07-AttachRolePolicy"
+      THEN privesc.method + ",Method-07-AttachRolePolicy"
       ELSE privesc.method
     END
 

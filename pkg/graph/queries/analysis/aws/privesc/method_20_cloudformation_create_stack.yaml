@@ -1,5 +1,5 @@
 name: Privesc Method 20 - CloudFormation CreateStack
-description: Creates CAN_PRIVESC relationship when a principal can pass privileged roles to CloudFormation stacks
+description: Creates CAN_PRIVESC relationship when a principal can pass roles to CloudFormation stacks
 impactedServices:
   - IAM
   - CloudFormation
@@ -9,10 +9,6 @@ cypher: |
   WHERE principal.admin IS NULL
     AND 'cloudformation.amazonaws.com' IN targetRole.trustedServices
     AND EXISTS((principal)-[:`cloudformation:CreateStack`]->())
-    AND (targetRole.admin = true
-      OR (principal:User AND
-          (EXISTS((principal)-[:`iam:PutRolePolicy`]->(targetRole))
-           OR EXISTS((principal)-[:`iam:AttachRolePolicy`]->(targetRole)))))
 
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)

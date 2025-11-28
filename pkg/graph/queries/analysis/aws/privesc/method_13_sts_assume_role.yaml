@@ -1,5 +1,5 @@
-name: Privesc Method 24 - STS AssumeRole
-description: Creates CAN_PRIVESC relationship when a principal can directly assume privileged roles
+name: Privesc Method 13 - AssumeRole
+description: Creates CAN_PRIVESC relationship when a principal can directly assume other roles
 impactedServices:
   - STS
   - IAM
@@ -7,7 +7,6 @@ severity: High
 cypher: |
   MATCH (principal)-[:`sts:AssumeRole`]->(targetRole:`IAM::Role`)
   WHERE principal.admin IS NULL
-    AND targetRole.admin = true
     AND targetRole.assumeRolePolicyDoc IS NOT NULL
     AND (
       targetRole.assumeRolePolicyDoc CONTAINS principal.arn
@@ -19,7 +18,7 @@ cypher: |
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)
   ON CREATE SET
-    privesc.method = "Method-24-AssumeRole",
+    privesc.method = "Method-13-AssumeRole",
     privesc.requires = ["sts:AssumeRole"],
     privesc.service = "STS",
     privesc.targetType = "Role",
@@ -27,8 +26,8 @@ cypher: |
     privesc.trustsPublic = (targetRole.trustsPublic = true)
   ON MATCH SET
     privesc.method = CASE
-      WHEN NOT privesc.method CONTAINS "Method-24-AssumeRole"
-      THEN privesc.method + ",Method-24-AssumeRole"
+      WHEN NOT privesc.method CONTAINS "Method-13-AssumeRole"
+      THEN privesc.method + ",Method-13-AssumeRole"
       ELSE privesc.method
     END
 

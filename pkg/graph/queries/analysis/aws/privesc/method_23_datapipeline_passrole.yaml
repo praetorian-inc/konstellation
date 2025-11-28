@@ -1,5 +1,5 @@
 name: Privesc Method 23 - DataPipeline PassRole
-description: Creates CAN_PRIVESC relationship when a principal can pass privileged roles to Data Pipeline
+description: Creates CAN_PRIVESC relationship when a principal can pass roles to Data Pipeline
 impactedServices:
   - IAM
   - DataPipeline
@@ -10,10 +10,6 @@ cypher: |
     AND 'datapipeline.amazonaws.com' IN targetRole.trustedServices
     AND (EXISTS((principal)-[:`datapipeline:CreatePipeline`]->())
          OR EXISTS((principal)-[:`datapipeline:PutPipelineDefinition`]->()))
-    AND (targetRole.admin = true
-      OR (principal:User AND
-          (EXISTS((principal)-[:`iam:PutRolePolicy`]->(targetRole))
-           OR EXISTS((principal)-[:`iam:AttachRolePolicy`]->(targetRole)))))
 
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)

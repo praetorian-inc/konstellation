@@ -1,5 +1,5 @@
 name: Privesc Method 15 - Lambda PassRole InvokeFunction
-description: Creates CAN_PRIVESC relationship when a principal can pass privileged roles to Lambda and invoke functions
+description: Creates CAN_PRIVESC relationship when a principal can pass roles to Lambda and invoke functions
 impactedServices:
   - IAM
   - Lambda
@@ -10,10 +10,6 @@ cypher: |
     AND 'lambda.amazonaws.com' IN targetRole.trustedServices
     AND EXISTS((principal)-[:`lambda:CreateFunction`]->())
     AND EXISTS((principal)-[:`lambda:InvokeFunction`]->())
-    AND (targetRole.admin = true
-      OR (principal:User AND
-          (EXISTS((principal)-[:`iam:PutRolePolicy`]->(targetRole))
-           OR EXISTS((principal)-[:`iam:AttachRolePolicy`]->(targetRole)))))
 
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)

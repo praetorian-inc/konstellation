@@ -1,4 +1,4 @@
-name: Privesc Method 12 - PutRolePolicy
+name: Privesc Method 6 - PutRolePolicy
 description: Creates CAN_PRIVESC relationship when a principal can put inline policies on roles they can access
 impactedServices:
   - IAM
@@ -15,14 +15,14 @@ cypher: |
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(role)
   ON CREATE SET
-    privesc.method = "Method-12-PutRolePolicy",
+    privesc.method = "Method-06-PutRolePolicy",
     privesc.requires = ["iam:PutRolePolicy"],
     privesc.service = "IAM",
     privesc.targetType = CASE WHEN principal.arn = role.arn THEN "Self" ELSE "Role" END
   ON MATCH SET
     privesc.method = CASE
-      WHEN NOT privesc.method CONTAINS "Method-12-PutRolePolicy"
-      THEN privesc.method + ",Method-12-PutRolePolicy"
+      WHEN NOT privesc.method CONTAINS "Method-06-PutRolePolicy"
+      THEN privesc.method + ",Method-06-PutRolePolicy"
       ELSE privesc.method
     END
 

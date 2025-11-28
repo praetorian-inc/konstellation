@@ -1,24 +1,23 @@
-name: Privesc Method 6 - Update Login Profile
-description: Creates CAN_PRIVESC relationship when a principal can update login profiles for privileged users
+name: Privesc Method 11 - UpdateLoginProfile
+description: Creates CAN_PRIVESC relationship when a principal can update login profiles for other users
 impactedServices:
   - IAM
 severity: High
 cypher: |
   MATCH (principal)-[:`iam:UpdateLoginProfile`]->(user:`IAM::User`)
   WHERE principal.admin IS NULL
-    AND user.admin = true
 
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(user)
   ON CREATE SET
-    privesc.method = "Method-06-UpdateLoginProfile",
+    privesc.method = "Method-11-UpdateLoginProfile",
     privesc.requires = ["iam:UpdateLoginProfile"],
     privesc.service = "IAM",
     privesc.targetType = "User"
   ON MATCH SET
     privesc.method = CASE
-      WHEN NOT privesc.method CONTAINS "Method-06-UpdateLoginProfile"
-      THEN privesc.method + ",Method-06-UpdateLoginProfile"
+      WHEN NOT privesc.method CONTAINS "Method-11-UpdateLoginProfile"
+      THEN privesc.method + ",Method-11-UpdateLoginProfile"
       ELSE privesc.method
     END
 

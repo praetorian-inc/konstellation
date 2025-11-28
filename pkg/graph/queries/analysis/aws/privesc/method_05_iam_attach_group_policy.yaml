@@ -1,25 +1,26 @@
-name: Privesc Method 11 - PutGroupPolicy
-description: Creates CAN_PRIVESC relationship when a user can put inline policies on groups they belong to
+name: Privesc Method 5 - AttachGroupPolicy
+description: Creates CAN_PRIVESC relationship when a user can attach policies to groups they belong to
 impactedServices:
   - IAM
 severity: High
 cypher: |
-  MATCH (principal)-[:`iam:PutGroupPolicy`]->(group:`IAM::Group`)
+  MATCH (principal:`IAM::User`)-[:`iam:AttachGroupPolicy`]->(group:`IAM::Group`)
   WHERE principal.admin IS NULL
     AND group.identifier IN principal.groupList
 
   // Create self-escalation relationship via group
   MERGE (principal)-[privesc:CAN_PRIVESC]->(principal)
   ON CREATE SET
-    privesc.method = "Method-11-PutGroupPolicy",
-    privesc.requires = ["iam:PutGroupPolicy"],
+    privesc.method = "Method-05-AttachGroupPolicy",
+    privesc.requires = ["iam:AttachGroupPolicy"],
     privesc.service = "IAM",
     privesc.targetType = "Self",
-    privesc.targetGroup = group.arn
+    privesc.targetGroup = group.arn,
+    privesc.discovered = datetime()
   ON MATCH SET
     privesc.method = CASE
-      WHEN NOT privesc.method CONTAINS "Method-11-PutGroupPolicy"
-      THEN privesc.method + ",Method-11-PutGroupPolicy"
+      WHEN NOT privesc.method CONTAINS "Method-05-AttachGroupPolicy"
+      THEN privesc.method + ",Method-05-AttachGroupPolicy"
       ELSE privesc.method
     END,
     privesc.targetGroup = CASE
