@@ -29,5 +29,8 @@ cypher: |
       ELSE privesc.targetGroup
     END
 
+  // Mark as self-escalation capable
+  SET principal.canSelfEscalate = true
+
   WITH principal, collect(DISTINCT group) AS groups
   RETURN principal.arn AS vulnerable
