@@ -3,6 +3,7 @@ description: Creates CAN_PRIVESC relationship when a principal can create access
 impactedServices:
   - IAM
 severity: High
+order: 108
 cypher: |
   MATCH (principal)-[:`iam:CreateAccessKey`]->(user:`IAM::User`)
   WHERE principal.admin IS NULL

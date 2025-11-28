@@ -3,6 +3,7 @@ description: Creates CAN_PRIVESC relationship when a principal can modify a poli
 impactedServices:
   - IAM
 severity: High
+order: 100
 cypher: |
   MATCH (principal)-[:`iam:CreatePolicyVersion`]->(policy:`IAM::ManagedPolicy`)
   WHERE principal.admin IS NULL

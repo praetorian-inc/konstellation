@@ -3,6 +3,7 @@ description: Creates CAN_PRIVESC relationship when a principal can update login 
 impactedServices:
   - IAM
 severity: High
+order: 110
 cypher: |
   MATCH (principal)-[:`iam:UpdateLoginProfile`]->(user:`IAM::User`)
   WHERE principal.admin IS NULL

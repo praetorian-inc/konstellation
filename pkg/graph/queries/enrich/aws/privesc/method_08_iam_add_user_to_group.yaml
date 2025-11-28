@@ -3,6 +3,7 @@ description: Creates CAN_PRIVESC relationship when a user can add itself to priv
 impactedServices:
   - IAM
 severity: High
+order: 107
 cypher: |
   MATCH (principal:`IAM::User`)-[:`iam:AddUserToGroup`]->(group:`IAM::Group`)
   WHERE principal.admin IS NULL

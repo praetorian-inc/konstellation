@@ -4,6 +4,7 @@ impactedServices:
   - SSM
   - EC2
 severity: High
+order: 124
 cypher: |
   MATCH (principal)-[:`ssm:StartSession`]->(instance)
   WHERE principal.admin IS NULL

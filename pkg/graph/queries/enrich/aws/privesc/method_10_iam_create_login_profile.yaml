@@ -3,6 +3,7 @@ description: Creates CAN_PRIVESC relationship when a principal can create login 
 impactedServices:
   - IAM
 severity: High
+order: 109
 cypher: |
   MATCH (principal)-[:`iam:CreateLoginProfile`]->(user)
   WHERE (user:User OR user:`IAM::User`)

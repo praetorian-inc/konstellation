@@ -3,6 +3,7 @@ description: Creates CAN_PRIVESC relationship when a principal can put inline po
 impactedServices:
   - IAM
 severity: High
+order: 105
 cypher: |
   MATCH (principal)-[:`iam:PutRolePolicy`]->(role:Role)
   WHERE principal.admin IS NULL

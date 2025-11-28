@@ -4,6 +4,7 @@ impactedServices:
   - SSM
   - EC2
 severity: High
+order: 123
 cypher: |
   MATCH (principal)-[:`ssm:SendCommand`]->(instance:`AWS::EC2::Instance`)
   WHERE principal.admin IS NULL

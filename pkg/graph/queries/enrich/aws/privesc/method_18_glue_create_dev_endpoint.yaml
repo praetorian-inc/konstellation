@@ -4,6 +4,7 @@ impactedServices:
   - IAM
   - Glue
 severity: High
+order: 117
 cypher: |
   MATCH (principal)-[:`iam:PassRole`]->(targetRole:`IAM::Role`)
   WHERE principal.admin IS NULL

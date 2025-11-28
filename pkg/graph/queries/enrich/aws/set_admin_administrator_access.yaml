@@ -3,6 +3,7 @@ description: Sets the admin attribute to true for principals with AdministratorA
 impactedServices:
   - IAM
 severity: Informational
+order: 30
 cypher: |
   MATCH (p:Principal)
   WHERE "arn:aws:iam::aws:policy/AdministratorAccess" IN p.attachedManagedPolicies

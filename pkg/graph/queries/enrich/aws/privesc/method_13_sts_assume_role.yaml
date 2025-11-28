@@ -4,6 +4,7 @@ impactedServices:
   - STS
   - IAM
 severity: High
+order: 112
 cypher: |
   MATCH (principal)-[:`sts:AssumeRole`]->(targetRole:`IAM::Role`)
   WHERE principal.admin IS NULL

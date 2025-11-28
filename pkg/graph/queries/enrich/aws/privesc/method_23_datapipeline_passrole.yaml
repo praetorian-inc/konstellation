@@ -4,6 +4,7 @@ impactedServices:
   - IAM
   - DataPipeline
 severity: High
+order: 122
 cypher: |
   MATCH (principal)-[:`iam:PassRole`]->(targetRole:`IAM::Role`)
   WHERE principal.admin IS NULL

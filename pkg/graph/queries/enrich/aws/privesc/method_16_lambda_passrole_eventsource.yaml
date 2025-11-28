@@ -4,6 +4,7 @@ impactedServices:
   - IAM
   - Lambda
 severity: High
+order: 115
 cypher: |
   MATCH (principal)-[:`iam:PassRole`]->(targetRole:Role)
   WHERE principal.admin IS NULL

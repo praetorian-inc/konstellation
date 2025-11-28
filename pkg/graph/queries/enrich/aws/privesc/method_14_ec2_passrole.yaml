@@ -4,6 +4,7 @@ impactedServices:
   - IAM
   - EC2
 severity: High
+order: 113
 cypher: |
   MATCH (principal)-[:`iam:PassRole`]->(targetRole:Role)
   WHERE principal.admin IS NULL

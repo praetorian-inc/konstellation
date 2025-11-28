@@ -4,6 +4,7 @@ impactedServices:
   - IAM
   - ECS
 severity: High
+order: 125
 cypher: |
   MATCH (principal)-[:`iam:PassRole`]->(targetRole:Role)
   WHERE principal.admin IS NULL

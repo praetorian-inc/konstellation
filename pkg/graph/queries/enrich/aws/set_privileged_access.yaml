@@ -3,6 +3,7 @@ description: Sets the privileged attribute to a list of elevated access policies
 impactedServices:
   - IAM
 severity: Informational
+order: 30
 cypher: |
   MATCH (p:Principal)
   WHERE p.attachedManagedPolicies IS NOT NULL

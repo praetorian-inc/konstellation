@@ -3,6 +3,7 @@ description: Enriches the graph by creating relationships between IAM Roles and 
 impactedServices:
   - IAM
 severity: Informational
+order: 40
 cypher: |
   MATCH (role:Role), (policy)
   WHERE any(label IN labels(policy) WHERE label CONTAINS 'Policy')

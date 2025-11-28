@@ -3,6 +3,7 @@ description: Creates CAN_PRIVESC relationship when a principal can update Lambda
 impactedServices:
   - Lambda
 severity: High
+order: 116
 cypher: |
   MATCH (principal)-[:`lambda:UpdateFunctionCode`]->(lambda:`Lambda::Function`)
   WHERE principal.admin IS NULL

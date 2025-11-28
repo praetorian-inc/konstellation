@@ -2,7 +2,8 @@ name: Resource to Role
 description: Enriches the graph by creating relationships between resources and their assumed roles.
 impactedServices:
   - IAM
-severity: None
+severity: Informational
+order: 40
 cypher: |
   MATCH (res:Resource) 
   WHERE NOT res.Role IS NULL 

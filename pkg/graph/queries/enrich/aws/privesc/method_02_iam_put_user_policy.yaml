@@ -3,6 +3,7 @@ description: Creates CAN_PRIVESC relationship when a user can put inline policie
 impactedServices:
   - IAM
 severity: High
+order: 101
 cypher: |
   MATCH (principal:`IAM::User`)-[:`iam:PutUserPolicy`]->(user:`IAM::User`)
   WHERE principal.admin IS NULL
