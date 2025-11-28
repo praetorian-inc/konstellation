@@ -28,6 +28,3 @@ cypher: |
   // Mark based on whether self or other
   SET principal.canSelfEscalate = CASE WHEN principal.arn = role.arn THEN true ELSE principal.canSelfEscalate END,
       role.canBeMadeAdmin = CASE WHEN principal.arn <> role.arn THEN true ELSE role.canBeMadeAdmin END
-
-  WITH principal, collect(DISTINCT role) AS roles
-  RETURN principal.arn AS vulnerable

@@ -25,4 +25,3 @@ cypher: |
       ELSE privesc.method
     END
 
-  RETURN principal.arn AS vulnerable

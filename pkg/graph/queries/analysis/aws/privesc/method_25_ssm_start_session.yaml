@@ -36,5 +36,3 @@ cypher: |
       ELSE privesc.instanceId
     END
 
-  WITH principal, collect(DISTINCT instanceRole) AS instanceRoles
-  RETURN principal.arn AS vulnerable

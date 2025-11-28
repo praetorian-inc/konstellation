@@ -31,5 +31,3 @@ cypher: |
       ELSE privesc.lambdaArn
     END
 
-  WITH principal, collect(DISTINCT attachedRole) AS attachedRoles
-  RETURN principal.arn AS vulnerable

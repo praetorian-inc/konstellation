@@ -30,5 +30,3 @@ cypher: |
 
   // Mark as self-escalation capable
   SET principal.canSelfEscalate = true
-
-  RETURN principal.arn AS vulnerable
