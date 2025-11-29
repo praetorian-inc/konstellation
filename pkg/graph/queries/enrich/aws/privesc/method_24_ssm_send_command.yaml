@@ -6,9 +6,10 @@ impactedServices:
 severity: High
 order: 123
 cypher: |
-  MATCH (principal)-[:`ssm:SendCommand`]->(instance:`AWS::EC2::Instance`)
+  MATCH (principal)-[cmd:`ssm:SendCommand`]->(instance:`AWS::EC2::Instance`)
   WHERE principal.admin IS NULL
     AND instance.IamInstanceProfile IS NOT NULL
+    AND cmd.ssm_allows_shell_execution = true 
 
   // Match the actual IAM role using instanceProfileList
   MATCH (instanceRole:`AWS::IAM::Role`)
@@ -22,7 +23,8 @@ cypher: |
     privesc.requires = ["ssm:SendCommand"],
     privesc.service = "SSM",
     privesc.targetType = "Role",
-    privesc.instanceId = instance.instanceId
+    privesc.instanceId = instance.instanceId,
+    privesc.allowedDocuments = cmd.ssm_document_restrictions
   ON MATCH SET
     privesc.method = CASE
       WHEN NOT privesc.method CONTAINS "Method-24-SSM-SendCommand"
@@ -33,5 +35,11 @@ cypher: |
       WHEN privesc.instanceId IS NULL THEN instance.instanceId
       WHEN NOT privesc.instanceId CONTAINS instance.instanceId THEN privesc.instanceId + "," + instance.instanceId
       ELSE privesc.instanceId
+    END,
+    privesc.allowedDocuments = CASE
+      WHEN privesc.allowedDocuments IS NULL THEN cmd.ssm_document_restrictions
+      WHEN privesc.allowedDocuments <> cmd.ssm_document_restrictions 
+      THEN privesc.allowedDocuments + cmd.ssm_document_restrictions
+      ELSE privesc.allowedDocuments
     END
 
