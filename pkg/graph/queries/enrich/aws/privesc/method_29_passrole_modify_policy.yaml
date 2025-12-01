@@ -1,4 +1,4 @@
-name: Privesc Method 27 - PassRole with Policy Modification
+name: Privesc Method 29 - PassRole with Policy Modification
 description: Creates CAN_PRIVESC when a principal can modify a role's policies AND use it via a service (PassRole + service execution)
 impactedServices:
   - IAM
@@ -51,7 +51,7 @@ cypher: |
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)
   ON CREATE SET
-    privesc.method = "Method-27-PassRole-ModifyPolicy",
+    privesc.method = "Method-29-PassRole-ModifyPolicy",
     privesc.requires = CASE
       WHEN type(modify) = 'iam:PutRolePolicy' THEN ["iam:PutRolePolicy", "iam:PassRole"]
       ELSE ["iam:AttachRolePolicy", "iam:PassRole"]
@@ -61,8 +61,8 @@ cypher: |
     privesc.attackPath = "Modify role policy + PassRole to service"
   ON MATCH SET
     privesc.method = CASE
-      WHEN NOT privesc.method CONTAINS "Method-27-PassRole-ModifyPolicy"
-      THEN privesc.method + ",Method-27-PassRole-ModifyPolicy"
+      WHEN NOT privesc.method CONTAINS "Method-29-PassRole-ModifyPolicy"
+      THEN privesc.method + ",Method-29-PassRole-ModifyPolicy"
       ELSE privesc.method
     END
 

@@ -1,4 +1,4 @@
-name: Privesc Method 10 - CreateLoginProfile
+name: Privesc Method 5 - CreateLoginProfile
 description: Creates CAN_PRIVESC relationship when a principal can create login profiles for other users
 impactedServices:
   - IAM
@@ -12,14 +12,14 @@ cypher: |
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(user)
   ON CREATE SET
-    privesc.method = "Method-10-CreateLoginProfile",
+    privesc.method = "Method-05-CreateLoginProfile",
     privesc.requires = ["iam:CreateLoginProfile"],
     privesc.service = "IAM",
     privesc.targetType = "User"
   ON MATCH SET
     privesc.method = CASE
-      WHEN NOT privesc.method CONTAINS "Method-10-CreateLoginProfile"
-      THEN privesc.method + ",Method-10-CreateLoginProfile"
+      WHEN NOT privesc.method CONTAINS "Method-05-CreateLoginProfile"
+      THEN privesc.method + ",Method-05-CreateLoginProfile"
       ELSE privesc.method
     END
 

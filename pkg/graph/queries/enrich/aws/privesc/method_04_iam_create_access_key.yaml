@@ -1,4 +1,4 @@
-name: Privesc Method 9 - CreateAccessKey
+name: Privesc Method 4 - CreateAccessKey
 description: Creates CAN_PRIVESC relationship when a principal can create access keys for other users
 impactedServices:
   - IAM
@@ -11,14 +11,14 @@ cypher: |
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(user)
   ON CREATE SET
-    privesc.method = "Method-09-CreateAccessKey",
+    privesc.method = "Method-04-CreateAccessKey",
     privesc.requires = ["iam:CreateAccessKey"],
     privesc.service = "IAM",
     privesc.targetType = "User"
   ON MATCH SET
     privesc.method = CASE
-      WHEN NOT privesc.method CONTAINS "Method-09-CreateAccessKey"
-      THEN privesc.method + ",Method-09-CreateAccessKey"
+      WHEN NOT privesc.method CONTAINS "Method-04-CreateAccessKey"
+      THEN privesc.method + ",Method-04-CreateAccessKey"
       ELSE privesc.method
     END
 

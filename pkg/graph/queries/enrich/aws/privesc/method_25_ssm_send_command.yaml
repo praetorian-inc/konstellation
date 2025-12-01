@@ -1,4 +1,4 @@
-name: Privesc Method 24 - SSM SendCommand
+name: Privesc Method 25 - SSM SendCommand
 description: Creates CAN_PRIVESC relationship when a principal can send SSM commands to instances with roles
 impactedServices:
   - SSM
@@ -19,7 +19,7 @@ cypher: |
   // Create the privesc relationship to the instance's role
   MERGE (principal)-[privesc:CAN_PRIVESC]->(instanceRole)
   ON CREATE SET
-    privesc.method = "Method-24-SSM-SendCommand",
+    privesc.method = "Method-25-SSM-SendCommand",
     privesc.requires = ["ssm:SendCommand"],
     privesc.service = "SSM",
     privesc.targetType = "Role",
@@ -27,8 +27,8 @@ cypher: |
     privesc.allowedDocuments = cmd.ssm_document_restrictions
   ON MATCH SET
     privesc.method = CASE
-      WHEN NOT privesc.method CONTAINS "Method-24-SSM-SendCommand"
-      THEN privesc.method + ",Method-24-SSM-SendCommand"
+      WHEN NOT privesc.method CONTAINS "Method-25-SSM-SendCommand"
+      THEN privesc.method + ",Method-25-SSM-SendCommand"
       ELSE privesc.method
     END,
     privesc.instanceId = CASE

@@ -1,4 +1,4 @@
-name: Privesc Method 12 - UpdateAssumeRolePolicy
+name: Privesc Method 14 - UpdateAssumeRolePolicy
 description: Creates CAN_PRIVESC relationship when a principal can update trust policies of roles
 impactedServices:
   - IAM
@@ -12,14 +12,14 @@ cypher: |
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)
   ON CREATE SET
-    privesc.method = "Method-12-UpdateAssumeRolePolicy",
+    privesc.method = "Method-14-UpdateAssumeRolePolicy",
     privesc.requires = ["iam:UpdateAssumeRolePolicy", "sts:AssumeRole"],
     privesc.service = "IAM",
     privesc.targetType = "Role"
   ON MATCH SET
     privesc.method = CASE
-      WHEN NOT privesc.method CONTAINS "Method-12-UpdateAssumeRolePolicy"
-      THEN privesc.method + ",Method-12-UpdateAssumeRolePolicy"
+      WHEN NOT privesc.method CONTAINS "Method-14-UpdateAssumeRolePolicy"
+      THEN privesc.method + ",Method-14-UpdateAssumeRolePolicy"
       ELSE privesc.method
     END
 

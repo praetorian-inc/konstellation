@@ -1,4 +1,4 @@
-name: Privesc Method 14 - EC2 PassRole
+name: Privesc Method 3 - EC2 PassRole
 description: Creates CAN_PRIVESC relationship when a principal can pass roles to EC2 instances
 impactedServices:
   - IAM
@@ -16,14 +16,14 @@ cypher: |
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)
   ON CREATE SET
-    privesc.method = "Method-14-EC2-PassRole",
+    privesc.method = "Method-03-EC2-PassRole",
     privesc.requires = ["iam:PassRole", "ec2:RunInstances"],
     privesc.service = "EC2",
     privesc.targetType = "Role"
   ON MATCH SET
     privesc.method = CASE
-      WHEN NOT privesc.method CONTAINS "Method-14-EC2-PassRole"
-      THEN privesc.method + ",Method-14-EC2-PassRole"
+      WHEN NOT privesc.method CONTAINS "Method-03-EC2-PassRole"
+      THEN privesc.method + ",Method-03-EC2-PassRole"
       ELSE privesc.method
     END
 
