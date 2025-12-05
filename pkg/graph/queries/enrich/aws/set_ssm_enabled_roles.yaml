@@ -1,0 +1,16 @@
+name: Set SSM Enabled Roles
+description: Identifies roles with SSM managed instance policies for privilege escalation analysis via SSM
+impactedServices:
+  - IAM
+  - SSM
+severity: Informational
+cypher: |
+  MATCH (role:`IAM::Role`)
+  WHERE role.attachedManagedPolicies IS NOT NULL
+    AND ANY(policy IN role.attachedManagedPolicies WHERE
+      policy CONTAINS 'AmazonSSMManagedInstanceCore'
+      OR policy CONTAINS 'SSMManagedInstanceCore'
+      OR policy CONTAINS 'SSMManagedInstance'
+      OR toLower(policy) CONTAINS 'ssmmanagedinstance')
+  SET role.ssmEnabled = true
+  RETURN count(role) as SSMEnabledRolesProcessed

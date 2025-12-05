@@ -1,0 +1,15 @@
+name: Privesc Method 27 - ECS PassRole RunTask (Second-Order)
+description: Detects second-order privilege escalation where a principal can pass a role to ECS tasks that has existing CAN_PRIVESC relationships
+impactedServices:
+  - IAM
+  - ECS
+severity: High
+cypher: |
+  MATCH (principal)-[:`iam:PassRole`]->(intermediateRole:Role)-[:CAN_PRIVESC]->(target)
+  WHERE principal.admin IS NULL
+    AND EXISTS((principal)-[:`ecs:RunTask`]->())
+    AND 'ecs-tasks.amazonaws.com' IN intermediateRole.trustedServices
+
+  WITH principal, intermediateRole, collect(DISTINCT target) AS targets
+
+  RETURN principal.arn AS vulnerable

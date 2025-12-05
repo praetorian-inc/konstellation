@@ -1,0 +1,28 @@
+name: Extract Role Trusted Services
+description: Extracts and normalizes AWS service principals from role trust policies for easier privilege escalation analysis
+impactedServices:
+  - IAM
+severity: Informational
+cypher: |
+  MATCH (role:`IAM::Role`)
+  WHERE role.assumeRolePolicyDoc IS NOT NULL
+  WITH role,
+    [service IN [
+      'ec2.amazonaws.com',
+      'lambda.amazonaws.com',
+      'glue.amazonaws.com',
+      'cloudformation.amazonaws.com',
+      'datapipeline.amazonaws.com',
+      'ecs-tasks.amazonaws.com',
+      'codebuild.amazonaws.com',
+      'sagemaker.amazonaws.com',
+      'eks.amazonaws.com',
+      'ecs.amazonaws.com',
+      'states.amazonaws.com',
+      'ssm.amazonaws.com'
+    ] WHERE role.assumeRolePolicyDoc CONTAINS service] AS trustedServices
+  SET role.trustedServices = CASE
+    WHEN size(trustedServices) > 0 THEN trustedServices
+    ELSE []
+  END
+  RETURN count(role) as RolesProcessed

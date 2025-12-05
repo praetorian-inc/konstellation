@@ -1,0 +1,25 @@
+name: Privesc Method 7 - AttachUserPolicy
+description: Creates CAN_PRIVESC relationship when a user can attach policies to itself
+impactedServices:
+  - IAM
+severity: High
+cypher: |
+  MATCH (principal:`IAM::User`)-[:`iam:AttachUserPolicy`]->(user:`IAM::User`)
+  WHERE principal.admin IS NULL
+    AND principal.arn = user.arn
+
+  // Create self-escalation relationship
+  MERGE (principal)-[privesc:CAN_PRIVESC]->(principal)
+  ON CREATE SET
+    privesc.method = "Method-07-AttachUserPolicy",
+    privesc.requires = ["iam:AttachUserPolicy"],
+    privesc.service = "IAM",
+    privesc.targetType = "Self"
+  ON MATCH SET
+    privesc.method = CASE
+      WHEN NOT privesc.method CONTAINS "Method-07-AttachUserPolicy"
+      THEN privesc.method + ",Method-07-AttachUserPolicy"
+      ELSE privesc.method
+    END
+
+  RETURN principal.arn AS vulnerable

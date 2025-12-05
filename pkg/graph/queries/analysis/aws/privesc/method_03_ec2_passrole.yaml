@@ -1,0 +1,34 @@
+name: Privesc Method 3 - EC2 PassRole
+description: Creates CAN_PRIVESC relationship when a principal can pass a privileged role to EC2 instances
+impactedServices:
+  - IAM
+  - EC2
+severity: High
+cypher: |
+  MATCH (principal)-[:`iam:PassRole`]->(targetRole:Role)
+  WHERE principal.admin IS NULL
+    AND EXISTS((principal)-[:`ec2:RunInstances`]->())
+    AND 'ec2.amazonaws.com' IN targetRole.trustedServices
+    AND targetRole.instanceProfileList IS NOT NULL
+    AND targetRole.instanceProfileList <> '[]'
+    AND (targetRole.admin = true
+      OR (principal:User AND
+          (EXISTS((principal)-[:`iam:PutRolePolicy`]->(targetRole))
+           OR EXISTS((principal)-[:`iam:AttachRolePolicy`]->(targetRole)))))
+
+  // Create the privesc relationship
+  MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)
+  ON CREATE SET
+    privesc.method = "Method-03-EC2-PassRole",
+    privesc.requires = ["iam:PassRole", "ec2:RunInstances"],
+    privesc.service = "EC2",
+    privesc.targetType = "Role"
+  ON MATCH SET
+    privesc.method = CASE
+      WHEN NOT privesc.method CONTAINS "Method-03-EC2-PassRole"
+      THEN privesc.method + ",Method-03-EC2-PassRole"
+      ELSE privesc.method
+    END
+
+  WITH principal, collect(DISTINCT targetRole) AS targetRoles
+  RETURN principal.arn AS vulnerable

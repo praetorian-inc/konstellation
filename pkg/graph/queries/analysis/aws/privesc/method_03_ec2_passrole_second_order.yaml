@@ -1,0 +1,17 @@
+name: Privesc Method 3 - EC2 PassRole (Second-Order)
+description: Detects second-order privilege escalation where a principal can pass a role to EC2 that has existing CAN_PRIVESC relationships
+impactedServices:
+  - IAM
+  - EC2
+severity: High
+cypher: |
+  MATCH (principal)-[:`iam:PassRole`]->(intermediateRole:Role)-[:CAN_PRIVESC]->(target)
+  WHERE principal.admin IS NULL
+    AND EXISTS((principal)-[:`ec2:RunInstances`]->())
+    AND 'ec2.amazonaws.com' IN intermediateRole.trustedServices
+    AND intermediateRole.instanceProfileList IS NOT NULL
+    AND intermediateRole.instanceProfileList <> '[]'
+
+  WITH principal, intermediateRole, collect(DISTINCT target) AS targets
+
+  RETURN principal.arn AS vulnerable

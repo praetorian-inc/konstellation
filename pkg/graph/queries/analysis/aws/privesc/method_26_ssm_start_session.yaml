@@ -1,0 +1,41 @@
+name: Privesc Method 26 - SSM StartSession
+description: Creates CAN_PRIVESC relationship when a principal can start SSM sessions on instances with privileged roles
+impactedServices:
+  - SSM
+  - EC2
+severity: High
+cypher: |
+  MATCH (principal)-[:`ssm:StartSession`]->(instance)
+  WHERE principal.admin IS NULL
+    AND (instance:`EC2::Instance` OR instance:`AWS::EC2::Instance`)
+    AND instance.IamInstanceProfile IS NOT NULL
+
+  // Match the actual IAM role using instanceProfileList
+  MATCH (instanceRole)
+  WHERE (instanceRole:`IAM::Role` OR instanceRole:`AWS::IAM::Role`)
+    AND instanceRole.instanceProfileList CONTAINS instance.IamInstanceProfile
+    AND instanceRole.ssmEnabled = true
+    AND instanceRole.admin = true
+
+  // Create the privesc relationship to the instance's role
+  MERGE (principal)-[privesc:CAN_PRIVESC]->(instanceRole)
+  ON CREATE SET
+    privesc.method = "Method-26-SSM-StartSession",
+    privesc.requires = ["ssm:StartSession"],
+    privesc.service = "SSM",
+    privesc.targetType = "Role",
+    privesc.instanceId = instance.instanceId
+  ON MATCH SET
+    privesc.method = CASE
+      WHEN NOT privesc.method CONTAINS "Method-26-SSM-StartSession"
+      THEN privesc.method + ",Method-26-SSM-StartSession"
+      ELSE privesc.method
+    END,
+    privesc.instanceId = CASE
+      WHEN privesc.instanceId IS NULL THEN instance.instanceId
+      WHEN NOT privesc.instanceId CONTAINS instance.instanceId THEN privesc.instanceId + "," + instance.instanceId
+      ELSE privesc.instanceId
+    END
+
+  WITH principal, collect(DISTINCT instanceRole) AS instanceRoles
+  RETURN principal.arn AS vulnerable
