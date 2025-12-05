@@ -1,13 +1,13 @@
-name: Privesc Method 5 - Create Login Profile
-description: Creates CAN_PRIVESC relationship when a principal can create login profiles for privileged users
+name: Privesc Method 5 - CreateLoginProfile
+description: Creates CAN_PRIVESC relationship when a principal can create login profiles for other users
 impactedServices:
   - IAM
 severity: High
+order: 109
 cypher: |
   MATCH (principal)-[:`iam:CreateLoginProfile`]->(user)
   WHERE (user:User OR user:`IAM::User`)
     AND principal.admin IS NULL
-    AND user.admin = true
 
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(user)
@@ -23,5 +23,3 @@ cypher: |
       ELSE privesc.method
     END
 
-  WITH principal, collect(DISTINCT user) AS users
-  RETURN principal.arn AS vulnerable

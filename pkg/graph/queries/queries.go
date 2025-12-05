@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/praetorian-inc/konstellation/pkg/graph"
@@ -126,6 +127,7 @@ func loadQueriesFromFS(targetFS embed.FS, platform, queryType, embedBasePath str
 
 // GetPlatformQueries now returns a slice of Query objects matching the platform and type.
 // It can be extended to filter by category as well.
+// Results are sorted by the Order field (lower numbers run first).
 func GetPlatformQueries(platform, qType string, categories ...string) ([]Query, error) {
 	var result []Query
 	for _, query := range LoadedQueries {
@@ -142,6 +144,12 @@ func GetPlatformQueries(platform, qType string, categories ...string) ([]Query, 
 			}
 		}
 	}
+
+	// Sort by Order field (lower numbers first)
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Order < result[j].Order
+	})
+
 	if len(result) == 0 {
 		// It's possible no queries match, decide if this is an error or not.
 		// For now, returning an empty slice and no error.

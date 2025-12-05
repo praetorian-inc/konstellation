@@ -3,6 +3,7 @@ description: Creates CAN_PRIVESC relationship when a user can attach policies to
 impactedServices:
   - IAM
 severity: High
+order: 102
 cypher: |
   MATCH (principal:`IAM::User`)-[:`iam:AttachUserPolicy`]->(user:`IAM::User`)
   WHERE principal.admin IS NULL
@@ -22,4 +23,5 @@ cypher: |
       ELSE privesc.method
     END
 
-  RETURN principal.arn AS vulnerable
+  // Mark as self-escalation capable
+  SET principal.canSelfEscalate = true

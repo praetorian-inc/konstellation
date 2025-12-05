@@ -3,6 +3,7 @@ description: Creates CAN_PRIVESC relationship when a principal can modify a poli
 impactedServices:
   - IAM
 severity: High
+order: 100
 cypher: |
   MATCH (principal)-[:`iam:CreatePolicyVersion`]->(policy:`IAM::ManagedPolicy`)
   WHERE principal.admin IS NULL
@@ -17,10 +18,16 @@ cypher: |
     privesc.targetType = "Self",
     privesc.targetPolicy = policy.arn
   ON MATCH SET
+    privesc.method = CASE
+      WHEN NOT privesc.method CONTAINS "Method-01-CreatePolicyVersion"
+      THEN privesc.method + ",Method-01-CreatePolicyVersion"
+      ELSE privesc.method
+    END,
     privesc.targetPolicy = CASE
       WHEN privesc.targetPolicy IS NULL THEN policy.arn
       WHEN NOT privesc.targetPolicy CONTAINS policy.arn THEN privesc.targetPolicy + "," + policy.arn
       ELSE privesc.targetPolicy
     END
 
-  RETURN principal.arn AS vulnerable
+  // Mark as self-escalation capable
+  SET principal.canSelfEscalate = true

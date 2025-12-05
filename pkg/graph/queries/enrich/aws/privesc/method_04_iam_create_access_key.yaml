@@ -1,12 +1,12 @@
-name: Privesc Method 4 - Create User Access Key
-description: Creates CAN_PRIVESC relationship when a principal can create access keys for privileged users
+name: Privesc Method 4 - CreateAccessKey
+description: Creates CAN_PRIVESC relationship when a principal can create access keys for other users
 impactedServices:
   - IAM
 severity: High
+order: 108
 cypher: |
   MATCH (principal)-[:`iam:CreateAccessKey`]->(user:`IAM::User`)
   WHERE principal.admin IS NULL
-    AND user.admin = true
 
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(user)
@@ -22,5 +22,3 @@ cypher: |
       ELSE privesc.method
     END
 
-  WITH principal, collect(DISTINCT user) AS users
-  RETURN principal.arn AS vulnerable

@@ -1,19 +1,16 @@
 name: Privesc Method 16 - Lambda PassRole EventSource
-description: Creates CAN_PRIVESC relationship when a principal can pass privileged roles to Lambda with event source mapping
+description: Creates CAN_PRIVESC relationship when a principal can pass roles to Lambda with event source mapping
 impactedServices:
   - IAM
   - Lambda
 severity: High
+order: 115
 cypher: |
   MATCH (principal)-[:`iam:PassRole`]->(targetRole:Role)
   WHERE principal.admin IS NULL
     AND 'lambda.amazonaws.com' IN targetRole.trustedServices
     AND EXISTS((principal)-[:`lambda:CreateFunction`]->())
     AND EXISTS((principal)-[:`lambda:CreateEventSourceMapping`]->())
-    AND (targetRole.admin = true
-      OR (principal:User AND
-          (EXISTS((principal)-[:`iam:PutRolePolicy`]->(targetRole))
-           OR EXISTS((principal)-[:`iam:AttachRolePolicy`]->(targetRole)))))
 
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)
@@ -29,5 +26,3 @@ cypher: |
       ELSE privesc.method
     END
 
-  WITH principal, collect(DISTINCT targetRole) AS targetRoles
-  RETURN principal.arn AS vulnerable

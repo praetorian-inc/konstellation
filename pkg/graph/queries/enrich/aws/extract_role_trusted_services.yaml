@@ -3,6 +3,7 @@ description: Extracts and normalizes AWS service principals from role trust poli
 impactedServices:
   - IAM
 severity: Informational
+order: 20
 cypher: |
   MATCH (role:`IAM::Role`)
   WHERE role.assumeRolePolicyDoc IS NOT NULL

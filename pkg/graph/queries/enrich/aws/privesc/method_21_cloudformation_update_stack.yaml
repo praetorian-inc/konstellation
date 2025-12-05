@@ -1,18 +1,15 @@
 name: Privesc Method 21 - CloudFormation UpdateStack
-description: Creates CAN_PRIVESC relationship when a principal can pass privileged roles to CloudFormation stack updates
+description: Creates CAN_PRIVESC relationship when a principal can pass roles to CloudFormation stack updates
 impactedServices:
   - IAM
   - CloudFormation
 severity: High
+order: 120
 cypher: |
   MATCH (principal)-[:`iam:PassRole`]->(targetRole:`IAM::Role`)
   WHERE principal.admin IS NULL
     AND 'cloudformation.amazonaws.com' IN targetRole.trustedServices
     AND EXISTS((principal)-[:`cloudformation:UpdateStack`]->())
-    AND (targetRole.admin = true
-      OR (principal:User AND
-          (EXISTS((principal)-[:`iam:PutRolePolicy`]->(targetRole))
-           OR EXISTS((principal)-[:`iam:AttachRolePolicy`]->(targetRole)))))
 
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)
@@ -28,5 +25,3 @@ cypher: |
       ELSE privesc.method
     END
 
-  WITH principal, collect(DISTINCT targetRole) AS targetRoles
-  RETURN principal.arn AS vulnerable

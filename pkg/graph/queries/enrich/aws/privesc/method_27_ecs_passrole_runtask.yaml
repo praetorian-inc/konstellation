@@ -1,18 +1,15 @@
 name: Privesc Method 27 - ECS PassRole RunTask
-description: Creates CAN_PRIVESC relationship when a principal can pass privileged roles to ECS tasks
+description: Creates CAN_PRIVESC relationship when a principal can pass roles to ECS tasks
 impactedServices:
   - IAM
   - ECS
 severity: High
+order: 125
 cypher: |
   MATCH (principal)-[:`iam:PassRole`]->(targetRole:Role)
   WHERE principal.admin IS NULL
     AND EXISTS((principal)-[:`ecs:RunTask`]->())
     AND 'ecs-tasks.amazonaws.com' IN targetRole.trustedServices
-    AND (targetRole.admin = true
-      OR (principal:User AND
-          (EXISTS((principal)-[:`iam:PutRolePolicy`]->(targetRole))
-           OR EXISTS((principal)-[:`iam:AttachRolePolicy`]->(targetRole)))))
 
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)
@@ -28,5 +25,3 @@ cypher: |
       ELSE privesc.method
     END
 
-  WITH principal, collect(DISTINCT targetRole) AS targetRoles
-  RETURN principal.arn AS vulnerable

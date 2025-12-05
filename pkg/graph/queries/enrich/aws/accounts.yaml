@@ -3,6 +3,7 @@ description: Merges Account nodes based on account ID and creates BELONGS_TO rel
 impactedServices:
   - IAM
 severity: Informational
+order: 10
 cypher: |
   // First collect all unique accountIds, excluding the wildcard '*'
   MATCH (p)

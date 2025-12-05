@@ -4,6 +4,7 @@ impactedServices:
   - IAM
   - SSM
 severity: Informational
+order: 30
 cypher: |
   MATCH (role:`IAM::Role`)
   WHERE role.attachedManagedPolicies IS NOT NULL

@@ -1,0 +1,34 @@
+name: Privesc Method 8 - AttachGroupPolicy
+description: Creates CAN_PRIVESC relationship when a user can attach policies to groups they belong to
+impactedServices:
+  - IAM
+severity: High
+order: 104
+cypher: |
+  MATCH (principal:`IAM::User`)-[:`iam:AttachGroupPolicy`]->(group:`IAM::Group`)
+  WHERE principal.admin IS NULL
+    AND group.identifier IN principal.groupList
+
+  // Create self-escalation relationship via group
+  MERGE (principal)-[privesc:CAN_PRIVESC]->(principal)
+  ON CREATE SET
+    privesc.method = "Method-08-AttachGroupPolicy",
+    privesc.requires = ["iam:AttachGroupPolicy"],
+    privesc.service = "IAM",
+    privesc.targetType = "Self",
+    privesc.targetGroup = group.arn,
+    privesc.discovered = datetime()
+  ON MATCH SET
+    privesc.method = CASE
+      WHEN NOT privesc.method CONTAINS "Method-08-AttachGroupPolicy"
+      THEN privesc.method + ",Method-08-AttachGroupPolicy"
+      ELSE privesc.method
+    END,
+    privesc.targetGroup = CASE
+      WHEN privesc.targetGroup IS NULL THEN group.arn
+      WHEN NOT privesc.targetGroup CONTAINS group.arn THEN privesc.targetGroup + "," + group.arn
+      ELSE privesc.targetGroup
+    END
+
+  // Mark as self-escalation capable
+  SET principal.canSelfEscalate = true

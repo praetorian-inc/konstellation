@@ -3,6 +3,7 @@ description: Parses role trust policies to extract specific principals, account 
 impactedServices:
   - IAM
 severity: Informational
+order: 20
 cypher: |
   MATCH (role:`IAM::Role`)
   WHERE role.assumeRolePolicyDoc IS NOT NULL

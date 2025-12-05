@@ -6,10 +6,7 @@ type QueryMetadata struct {
 	Description      string   `yaml:"description"`      // Detailed description of what the query does
 	ImpactedServices []string `yaml:"impactedServices"` // List of cloud services the query relates to
 	Severity         string   `yaml:"severity"`         // e.g., Critical, High, Medium, Low, Informational
-	// Add any other relevant metadata fields here
-	// For example:
-	// Remediation     string   `yaml:"remediation"`
-	// References      []string `yaml:"references"`
+	Order            int      `yaml:"order"`            // Execution order - lower numbers run first (default 0)
 }
 
 // Query represents a single loaded query.

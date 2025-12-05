@@ -1,0 +1,45 @@
+name: Privesc Method 25 - SSM SendCommand
+description: Creates CAN_PRIVESC relationship when a principal can send SSM commands to instances with roles
+impactedServices:
+  - SSM
+  - EC2
+severity: High
+order: 123
+cypher: |
+  MATCH (principal)-[cmd:`ssm:SendCommand`]->(instance:`AWS::EC2::Instance`)
+  WHERE principal.admin IS NULL
+    AND instance.IamInstanceProfile IS NOT NULL
+    AND cmd.ssm_allows_shell_execution = true 
+
+  // Match the actual IAM role using instanceProfileList
+  MATCH (instanceRole:`AWS::IAM::Role`)
+    WHERE instanceRole.instanceProfileList CONTAINS instance.IamInstanceProfile
+    AND instanceRole.ssmEnabled = true
+
+  // Create the privesc relationship to the instance's role
+  MERGE (principal)-[privesc:CAN_PRIVESC]->(instanceRole)
+  ON CREATE SET
+    privesc.method = "Method-25-SSM-SendCommand",
+    privesc.requires = ["ssm:SendCommand"],
+    privesc.service = "SSM",
+    privesc.targetType = "Role",
+    privesc.instanceId = instance.instanceId,
+    privesc.allowedDocuments = cmd.ssm_document_restrictions
+  ON MATCH SET
+    privesc.method = CASE
+      WHEN NOT privesc.method CONTAINS "Method-25-SSM-SendCommand"
+      THEN privesc.method + ",Method-25-SSM-SendCommand"
+      ELSE privesc.method
+    END,
+    privesc.instanceId = CASE
+      WHEN privesc.instanceId IS NULL THEN instance.instanceId
+      WHEN NOT privesc.instanceId CONTAINS instance.instanceId THEN privesc.instanceId + "," + instance.instanceId
+      ELSE privesc.instanceId
+    END,
+    privesc.allowedDocuments = CASE
+      WHEN privesc.allowedDocuments IS NULL THEN cmd.ssm_document_restrictions
+      WHEN privesc.allowedDocuments <> cmd.ssm_document_restrictions 
+      THEN privesc.allowedDocuments + cmd.ssm_document_restrictions
+      ELSE privesc.allowedDocuments
+    END
+
