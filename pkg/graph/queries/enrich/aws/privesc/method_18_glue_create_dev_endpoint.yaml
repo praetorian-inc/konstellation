@@ -6,10 +6,10 @@ impactedServices:
 severity: High
 order: 117
 cypher: |
-  MATCH (principal)-[:`iam:PassRole`]->(targetRole:`IAM::Role`)
+  MATCH (principal)-[:IAM_PASSROLE]->(targetRole:IAM_ROLE)
   WHERE principal.admin IS NULL
     AND 'glue.amazonaws.com' IN targetRole.trustedServices
-    AND EXISTS((principal)-[:`glue:CreateDevEndpoint`]->())
+    AND EXISTS((principal)-[:GLUE_CREATEDEVENDPOINT]->())
 
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)

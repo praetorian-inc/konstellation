@@ -5,7 +5,7 @@ impactedServices:
 severity: High
 order: 100
 cypher: |
-  MATCH (principal)-[:`iam:CreatePolicyVersion`]->(policy:`IAM::ManagedPolicy`)
+  MATCH (principal)-[:IAM_CREATEPOLICYVERSION]->(policy:IAM_MANAGEDPOLICY)
   WHERE principal.admin IS NULL
     AND policy.arn IN principal.attachedManagedPolicies
 

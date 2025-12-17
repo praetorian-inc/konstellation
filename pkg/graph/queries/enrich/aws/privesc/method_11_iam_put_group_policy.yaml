@@ -5,7 +5,7 @@ impactedServices:
 severity: High
 order: 103
 cypher: |
-  MATCH (principal)-[:`iam:PutGroupPolicy`]->(group:`IAM::Group`)
+  MATCH (principal)-[:IAM_PUTGROUPPOLICY]->(group:IAM_GROUP)
   WHERE principal.admin IS NULL
     AND group.identifier IN principal.groupList
 

@@ -5,11 +5,11 @@ impactedServices:
 severity: High
 order: 106
 cypher: |
-  MATCH (principal)-[:`iam:AttachRolePolicy`]->(role:Role)
+  MATCH (principal)-[:IAM_ATTACHROLEPOLICY]->(role:Role)
   WHERE principal.admin IS NULL
     AND (principal.arn = role.arn
          OR EXISTS {
-           MATCH (principal)-[r:`sts:AssumeRole`]->(role)
+           MATCH (principal)-[r:STS_ASSUMEROLE]->(role)
            WHERE r.Allowed = true})
 
   // Create the privesc relationship

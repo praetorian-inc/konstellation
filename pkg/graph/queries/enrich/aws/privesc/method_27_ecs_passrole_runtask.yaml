@@ -6,9 +6,9 @@ impactedServices:
 severity: High
 order: 125
 cypher: |
-  MATCH (principal)-[:`iam:PassRole`]->(targetRole:Role)
+  MATCH (principal)-[:IAM_PASSROLE]->(targetRole:Role)
   WHERE principal.admin IS NULL
-    AND EXISTS((principal)-[:`ecs:RunTask`]->())
+    AND EXISTS((principal)-[:ECS_RUNTASK]->())
     AND 'ecs-tasks.amazonaws.com' IN targetRole.trustedServices
 
   // Create the privesc relationship

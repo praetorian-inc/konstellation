@@ -6,11 +6,11 @@ impactedServices:
 severity: High
 order: 114
 cypher: |
-  MATCH (principal)-[:`iam:PassRole`]->(targetRole:Role)
+  MATCH (principal)-[:IAM_PASSROLE]->(targetRole:Role)
   WHERE principal.admin IS NULL
     AND 'lambda.amazonaws.com' IN targetRole.trustedServices
-    AND EXISTS((principal)-[:`lambda:CreateFunction`]->())
-    AND EXISTS((principal)-[:`lambda:InvokeFunction`]->())
+    AND EXISTS((principal)-[:LAMBDA_CREATEFUNCTION]->())
+    AND EXISTS((principal)-[:LAMBDA_INVOKEFUNCTION]->())
 
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)

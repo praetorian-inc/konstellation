@@ -5,11 +5,11 @@ impactedServices:
 severity: High
 order: 105
 cypher: |
-  MATCH (principal)-[:`iam:PutRolePolicy`]->(role:Role)
+  MATCH (principal)-[:IAM_PUTROLEPOLICY]->(role:Role)
   WHERE principal.admin IS NULL
     AND (principal.arn = role.arn
          OR EXISTS {
-           MATCH (principal)-[r:`sts:AssumeRole`]->(role)
+           MATCH (principal)-[r:STS_ASSUMEROLE]->(role)
            WHERE r.Allowed = true
          })
 

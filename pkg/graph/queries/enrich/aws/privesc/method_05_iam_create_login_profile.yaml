@@ -5,8 +5,8 @@ impactedServices:
 severity: High
 order: 109
 cypher: |
-  MATCH (principal)-[:`iam:CreateLoginProfile`]->(user)
-  WHERE (user:User OR user:`IAM::User`)
+  MATCH (principal)-[:IAM_CREATELOGINPROFILE]->(user)
+  WHERE (user:User OR user:IAM_USER)
     AND principal.admin IS NULL
 
   // Create the privesc relationship

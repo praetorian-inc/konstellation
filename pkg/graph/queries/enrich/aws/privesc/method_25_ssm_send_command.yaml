@@ -6,13 +6,13 @@ impactedServices:
 severity: High
 order: 123
 cypher: |
-  MATCH (principal)-[cmd:`ssm:SendCommand`]->(instance:`AWS::EC2::Instance`)
+  MATCH (principal)-[cmd:SSM_SENDCOMMAND]->(instance:AWS_EC2_INSTANCE)
   WHERE principal.admin IS NULL
     AND instance.IamInstanceProfile IS NOT NULL
-    AND cmd.ssm_allows_shell_execution = true 
+    AND cmd.ssm_allows_shell_execution = true
 
   // Match the actual IAM role using instanceProfileList
-  MATCH (instanceRole:`AWS::IAM::Role`)
+  MATCH (instanceRole:AWS_IAM_ROLE)
     WHERE instanceRole.instanceProfileList CONTAINS instance.IamInstanceProfile
     AND instanceRole.ssmEnabled = true
 

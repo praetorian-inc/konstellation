@@ -6,7 +6,7 @@ impactedServices:
 severity: Informational
 order: 30
 cypher: |
-  MATCH (role:`IAM::Role`)
+  MATCH (role:IAM_ROLE)
   WHERE role.attachedManagedPolicies IS NOT NULL
     AND ANY(policy IN role.attachedManagedPolicies WHERE
       policy CONTAINS 'AmazonSSMManagedInstanceCore'

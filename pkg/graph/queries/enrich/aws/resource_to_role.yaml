@@ -9,5 +9,5 @@ cypher: |
   WHERE NOT res.Role IS NULL 
   WITH res
   MATCH (p:Principal) WHERE p.arn = res.Role
-  MERGE (res)-[r:`sts:AssumeRole`]->(p)
+  MERGE (res)-[r:STS_ASSUMEROLE]->(p)
   RETURN res,r,p

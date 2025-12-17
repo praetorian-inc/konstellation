@@ -5,9 +5,9 @@ impactedServices:
 severity: High
 order: 111
 cypher: |
-  MATCH (principal)-[:`iam:UpdateAssumeRolePolicy`]->(targetRole:`IAM::Role`)
+  MATCH (principal)-[:IAM_UPDATEASSUMEROLEPOLICY]->(targetRole:IAM_ROLE)
   WHERE principal.admin IS NULL
-    AND EXISTS((principal)-[:`sts:AssumeRole`]->(targetRole))
+    AND EXISTS((principal)-[:STS_ASSUMEROLE]->(targetRole))
 
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)

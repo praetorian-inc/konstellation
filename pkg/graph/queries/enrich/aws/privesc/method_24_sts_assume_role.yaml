@@ -6,9 +6,8 @@ impactedServices:
 severity: High
 order: 112
 cypher: |
-  MATCH (principal)-[assume:`sts:AssumeRole`]->(targetRole:`IAM::Role`)
+  MATCH (principal)-[assume:STS_ASSUMEROLE]->(targetRole:IAM_ROLE)
   WHERE principal.admin IS NULL
-    AND assume.Allowed = true
 
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)
