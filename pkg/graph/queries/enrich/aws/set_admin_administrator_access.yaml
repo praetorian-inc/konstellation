@@ -6,6 +6,6 @@ severity: Informational
 order: 30
 cypher: |
   MATCH (p:Principal)
-  WHERE "arn:aws:iam::aws:policy/AdministratorAccess" CONTAINS p.attachedManagedPolicies
-     OR "arn:aws:iam::aws:policy/IAMFullAccess" CONTAINS p.attachedManagedPolicies
+  WHERE p.attachedManagedPolicies CONTAINS "arn:aws:iam::aws:policy/AdministratorAccess"
+    OR p.attachedManagedPolicies CONTAINS "arn:aws:iam::aws:policy/IAMFullAccess"
   SET p.admin = true
