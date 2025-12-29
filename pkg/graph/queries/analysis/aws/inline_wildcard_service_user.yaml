@@ -5,7 +5,7 @@ impactedServices:
 severity: High
 cypher: |
   // Find IAM Users with service wildcard inline policies
-  MATCH (user:AWS_AWS_IAM_User) 
+  MATCH (user:AWS_IAM_User) 
   WHERE user.userPolicyList IS NOT NULL 
     AND user.userPolicyList <> 'null'
     AND user.userPolicyList <> '[]'
