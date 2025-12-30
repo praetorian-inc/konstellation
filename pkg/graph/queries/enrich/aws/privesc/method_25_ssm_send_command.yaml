@@ -9,7 +9,7 @@ cypher: |
   MATCH (principal)-[cmd:SSM_SENDCOMMAND]->(instance:AWS_EC2_Instance)
   WHERE principal.admin IS NULL
     AND instance.IamInstanceProfile IS NOT NULL
-    AND cmd.ssm_allows_shell_execution = true
+    AND cmd.ssmAllowsShellExecution = true
 
   // Match the actual IAM role using instanceProfileList
   MATCH (instanceRole:AWS_IAM_Role)
