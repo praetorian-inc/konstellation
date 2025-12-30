@@ -13,7 +13,7 @@ cypher: |
 
   // Match the actual IAM role using instanceProfileList
   MATCH (instanceRole)
-  WHERE (instanceRole:IAM_ROLE OR instanceRole:AWS_IAM_Role
+  WHERE (instanceRole:AWS_IAM_Role OR instanceRole:AWS_IAM_Role
     AND instanceRole.instanceProfileList CONTAINS instance.IamInstanceProfile
     AND instanceRole.ssmEnabled = true
 

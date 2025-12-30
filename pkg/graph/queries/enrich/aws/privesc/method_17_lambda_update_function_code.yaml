@@ -10,7 +10,7 @@ cypher: |
     AND lambda.Role IS NOT NULL
 
   // Match the actual role by ARN
-  MATCH (attachedRole:IAM_ROLE {arn: lambda.Role})
+  MATCH (attachedRole:AWS_IAM_Role {arn: lambda.Role})
 
   // Create the privesc relationship to the Lambda's attached role
   MERGE (principal)-[privesc:CAN_PRIVESC]->(attachedRole)
