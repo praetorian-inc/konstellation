@@ -8,9 +8,9 @@ cypher: |
   MATCH (principal)-[:IAM_ATTACHROLEPOLICY]->(role:Role)
   WHERE principal.admin IS NULL
     AND (principal.arn = role.arn
-         OR EXISTS {
-           MATCH (principal)-[r:STS_ASSUMEROLE]->(role)
-           WHERE r.Allowed = true})
+        OR EXISTS {
+          MATCH (principal)-[:STS_ASSUMEROLE]->(role)
+        })
 
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(role)
@@ -29,3 +29,4 @@ cypher: |
   // Mark based on whether self or other
   SET principal.canSelfEscalate = CASE WHEN principal.arn = role.arn THEN true ELSE principal.canSelfEscalate END,
       role.canBeMadeAdmin = CASE WHEN principal.arn <> role.arn THEN true ELSE role.canBeMadeAdmin END
+      
