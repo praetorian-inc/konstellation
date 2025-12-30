@@ -6,7 +6,7 @@ impactedServices:
 severity: High
 order: 117
 cypher: |
-  MATCH (principal)-[:IAM_PASSROLE]->(targetRole:AWS_IAM_Role
+  MATCH (principal)-[:IAM_PASSROLE]->(targetRole:AWS_IAM_Role)
   WHERE principal.admin IS NULL
     AND 'glue.amazonaws.com' IN targetRole.trustedServices
     AND EXISTS((principal)-[:GLUE_CREATEDEVENDPOINT]->())

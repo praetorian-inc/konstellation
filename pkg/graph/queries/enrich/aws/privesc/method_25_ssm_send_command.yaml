@@ -12,7 +12,7 @@ cypher: |
     AND cmd.ssm_allows_shell_execution = true
 
   // Match the actual IAM role using instanceProfileList
-  MATCH (instanceRole:AWS_IAM_Role
+  MATCH (instanceRole:AWS_IAM_Role)
     WHERE instanceRole.instanceProfileList CONTAINS instance.IamInstanceProfile
     AND instanceRole.ssmEnabled = true
 

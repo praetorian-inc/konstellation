@@ -7,7 +7,7 @@ order: 107
 cypher: |
   MATCH (principal:AWS_IAM_User)-[:IAM_ADDUSERTOGROUP]->(group:AWS_IAM_Group)
   WHERE principal.admin IS NULL
-    AND NOT group.identifier IN principal.groupList
+  AND (principal.groupList IS NULL OR NOT group.arn IN principal.groupList)
 
   // Create self-escalation relationship via group addition
   MERGE (principal)-[privesc:CAN_PRIVESC]->(principal)
