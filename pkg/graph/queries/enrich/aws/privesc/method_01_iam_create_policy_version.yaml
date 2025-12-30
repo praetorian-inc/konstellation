@@ -7,7 +7,7 @@ order: 100
 cypher: |
   MATCH (principal)-[:IAM_CREATEPOLICYVERSION]->(policy:AWS_IAM_ManagedPolicy)
     WHERE principal.admin IS NULL
-  AND principal.attachedManagedPolicies CONTAINS policy.arn
+  AND policy.arn IN principal.attachedManagedPolicies
 
   // Create the privesc relationship from principal to itself (self-escalation via policy)
   MERGE (principal)-[privesc:CAN_PRIVESC]->(principal)
