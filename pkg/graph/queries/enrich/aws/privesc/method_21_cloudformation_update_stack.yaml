@@ -6,7 +6,7 @@ impactedServices:
 severity: High
 order: 120
 cypher: |
-  MATCH (principal)-[:IAM_PASSROLE]->(targetRole:IAM_ROLE)
+  MATCH (principal)-[:IAM_PASSROLE]->(targetRole:AWS_IAM_Role
   WHERE principal.admin IS NULL
     AND 'cloudformation.amazonaws.com' IN targetRole.trustedServices
     AND EXISTS((principal)-[:CLOUDFORMATION_UPDATESTACK]->())

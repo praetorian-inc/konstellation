@@ -6,7 +6,7 @@ impactedServices:
 severity: High
 order: 112
 cypher: |
-  MATCH (principal)-[assume:STS_ASSUMEROLE]->(targetRole:IAM_ROLE)
+  MATCH (principal)-[assume:STS_ASSUMEROLE]->(targetRole:AWS_IAM_Role
   WHERE principal.admin IS NULL
 
   // Create the privesc relationship

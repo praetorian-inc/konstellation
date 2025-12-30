@@ -5,7 +5,7 @@ impactedServices:
 severity: High
 cypher: |
   // Find IAM Roles with service wildcard inline policies
-  MATCH (role:AWS_IAM_ROLE) 
+  MATCH (role:AWS_IAM_Role 
   WHERE role.rolePolicyList IS NOT NULL 
     AND role.rolePolicyList <> 'null'
     AND role.rolePolicyList <> '[]'

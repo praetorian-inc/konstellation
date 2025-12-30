@@ -12,7 +12,7 @@ severity: High
 order: 126
 cypher: |
   // Find principals that can modify a role's policies (PutRolePolicy or AttachRolePolicy)
-  MATCH (principal)-[modify]->(targetRole:IAM_ROLE)
+  MATCH (principal)-[modify]->(targetRole:AWS_IAM_Role
   WHERE principal.admin IS NULL
     AND principal.arn <> targetRole.arn
     AND type(modify) IN ['IAM_PUTROLEPOLICY', 'IAM_ATTACHROLEPOLICY']
