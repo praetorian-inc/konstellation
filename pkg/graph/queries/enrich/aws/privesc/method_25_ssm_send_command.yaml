@@ -6,7 +6,7 @@ impactedServices:
 severity: High
 order: 123
 cypher: |
-  MATCH (principal)-[cmd:SSM_SENDCOMMAND]->(instance:AWS_EC2_INSTANCE)
+  MATCH (principal)-[cmd:SSM_SENDCOMMAND]->(instance:AWS_EC2_Instance)
   WHERE principal.admin IS NULL
     AND instance.IamInstanceProfile IS NOT NULL
     AND cmd.ssm_allows_shell_execution = true
