@@ -1,0 +1,26 @@
+name: Privesc Method 35 - SageMaker CreateProcessingJob
+description: Creates CAN_PRIVESC relationship when a principal can create SageMaker processing jobs with privileged roles
+impactedServices:
+  - IAM
+  - SageMaker
+severity: High
+order: 133
+cypher: |
+  MATCH (principal)-[:IAM_PASSROLE]->(targetRole:AWS_IAM_Role)
+  WHERE principal.admin IS NULL
+    AND 'sagemaker.amazonaws.com' IN targetRole.trustedServices
+    AND EXISTS((principal)-[:SAGEMAKER_CREATEPROCESSINGJOB]->())
+
+  // Create the privesc relationship
+  MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)
+  ON CREATE SET
+    privesc.method = "Method-35-SageMaker-ProcessingJob",
+    privesc.requires = ["iam:PassRole", "sagemaker:CreateProcessingJob"],
+    privesc.service = "SageMaker",
+    privesc.targetType = "Role"
+  ON MATCH SET
+    privesc.method = CASE
+      WHEN NOT privesc.method CONTAINS "Method-35-SageMaker-ProcessingJob"
+      THEN privesc.method + ",Method-35-SageMaker-ProcessingJob"
+      ELSE privesc.method
+    END

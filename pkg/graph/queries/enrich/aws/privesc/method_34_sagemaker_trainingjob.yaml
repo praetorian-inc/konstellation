@@ -1,0 +1,26 @@
+name: Privesc Method 34 - SageMaker CreateTrainingJob
+description: Creates CAN_PRIVESC relationship when a principal can create SageMaker training jobs with privileged roles
+impactedServices:
+  - IAM
+  - SageMaker
+severity: High
+order: 132
+cypher: |
+  MATCH (principal)-[:IAM_PASSROLE]->(targetRole:AWS_IAM_Role)
+  WHERE principal.admin IS NULL
+    AND 'sagemaker.amazonaws.com' IN targetRole.trustedServices
+    AND EXISTS((principal)-[:SAGEMAKER_CREATETRAININGJOB]->())
+
+  // Create the privesc relationship
+  MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)
+  ON CREATE SET
+    privesc.method = "Method-34-SageMaker-TrainingJob",
+    privesc.requires = ["iam:PassRole", "sagemaker:CreateTrainingJob"],
+    privesc.service = "SageMaker",
+    privesc.targetType = "Role"
+  ON MATCH SET
+    privesc.method = CASE
+      WHEN NOT privesc.method CONTAINS "Method-34-SageMaker-TrainingJob"
+      THEN privesc.method + ",Method-34-SageMaker-TrainingJob"
+      ELSE privesc.method
+    END

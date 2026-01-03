@@ -1,0 +1,26 @@
+name: Privesc Method 33 - SageMaker CreateNotebookInstance
+description: Creates CAN_PRIVESC relationship when a principal can create SageMaker notebook instances with privileged roles
+impactedServices:
+  - IAM
+  - SageMaker
+severity: High
+order: 131
+cypher: |
+  MATCH (principal)-[:IAM_PASSROLE]->(targetRole:AWS_IAM_Role)
+  WHERE principal.admin IS NULL
+    AND 'sagemaker.amazonaws.com' IN targetRole.trustedServices
+    AND EXISTS((principal)-[:SAGEMAKER_CREATENOTEBOOKINSTANCE]->())
+
+  // Create the privesc relationship
+  MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)
+  ON CREATE SET
+    privesc.method = "Method-33-SageMaker-CreateNotebook",
+    privesc.requires = ["iam:PassRole", "sagemaker:CreateNotebookInstance"],
+    privesc.service = "SageMaker",
+    privesc.targetType = "Role"
+  ON MATCH SET
+    privesc.method = CASE
+      WHEN NOT privesc.method CONTAINS "Method-33-SageMaker-CreateNotebook"
+      THEN privesc.method + ",Method-33-SageMaker-CreateNotebook"
+      ELSE privesc.method
+    END

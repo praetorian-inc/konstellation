@@ -1,0 +1,42 @@
+name: Privesc Method 29 - CodeBuild StartBuild
+description: Creates CAN_PRIVESC relationship when a principal can start builds on CodeBuild projects with privileged service roles
+impactedServices:
+  - CodeBuild
+severity: High
+order: 127
+cypher: |
+  MATCH (principal)-[startBuild]->(project:AWS_CodeBuild_Project)
+  WHERE principal.admin IS NULL
+    AND project.Role IS NOT NULL
+    AND type(startBuild) IN ['CODEBUILD_STARTBUILD', 'CODEBUILD_STARTBUILDBATCH']
+
+  // Aggregate to deduplicate and collect all build types
+  WITH principal, project, collect(DISTINCT type(startBuild)) as buildTypes
+
+  // Match the actual role by ARN
+  MATCH (serviceRole:AWS_IAM_Role {arn: project.Role})
+
+  // Create the privesc relationship to the project's service role
+  MERGE (principal)-[privesc:CAN_PRIVESC]->(serviceRole)
+  ON CREATE SET
+    privesc.method = "Method-29-CodeBuild-StartBuild",
+    privesc.requires = [t IN buildTypes | 
+      CASE t 
+        WHEN 'CODEBUILD_STARTBUILD' THEN "codebuild:StartBuild"
+        ELSE "codebuild:StartBuildBatch"
+      END
+    ],
+    privesc.service = "CodeBuild",
+    privesc.targetType = "Role",
+    privesc.projectName = project.name
+  ON MATCH SET
+    privesc.method = CASE
+      WHEN NOT privesc.method CONTAINS "Method-29-CodeBuild-StartBuild"
+      THEN privesc.method + ",Method-29-CodeBuild-StartBuild"
+      ELSE privesc.method
+    END,
+    privesc.projectName = CASE
+      WHEN privesc.projectName IS NULL THEN project.name
+      WHEN NOT privesc.projectName CONTAINS project.name THEN privesc.projectName + "," + project.name
+      ELSE privesc.projectName
+    END
