@@ -8,6 +8,7 @@ cypher: |
   MATCH (principal:AWS_IAM_User)-[:IAM_ADDUSERTOGROUP]->(group:AWS_IAM_Group)
   WHERE principal.admin IS NULL
   AND (principal.groupList IS NULL OR NOT group.arn IN principal.groupList)
+  AND (group.admin = true)
 
   // Create self-escalation relationship via group addition
   MERGE (principal)-[privesc:CAN_PRIVESC]->(principal)

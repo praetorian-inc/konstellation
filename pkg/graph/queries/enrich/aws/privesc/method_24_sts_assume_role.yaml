@@ -8,6 +8,7 @@ order: 112
 cypher: |
   MATCH (principal)-[assume:STS_ASSUMEROLE]->(targetRole:AWS_IAM_Role)
   WHERE principal.admin IS NULL
+  AND (principal:AWS_IAM_Role OR principal:AWS_IAM_User OR principal:AWS_IAM_Group)
 
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)
