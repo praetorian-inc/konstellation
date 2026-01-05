@@ -11,57 +11,39 @@ impactedServices:
 severity: High
 order: 126
 cypher: |
-  // Find principals that can modify a role's policies (PutRolePolicy or AttachRolePolicy)
-  MATCH (principal)-[modify]->(targetRole:AWS_IAM_Role)
+  // Method 28: UpdateAssumeRolePolicy + PassRole + Service invocation
+  MATCH (principal)-[:IAM_UPDATEASSUMEROLEPOLICY]->(targetRole:AWS_IAM_Role)
   WHERE principal.admin IS NULL
     AND principal.arn <> targetRole.arn
-    AND type(modify) IN ['IAM_PUTROLEPOLICY', 'IAM_ATTACHROLEPOLICY']
-    // Principal cannot directly assume the role
-    AND NOT EXISTS {
-      MATCH (principal)-[r:STS_ASSUMEROLE]->(targetRole)
-    }
+    AND targetRole.admin = true
     // Principal can PassRole to this role
     AND EXISTS { MATCH (principal)-[:IAM_PASSROLE]->(targetRole) }
-    // Role trusts a service AND principal can execute that service
+    // Principal can invoke at least one service that could assume roles
     AND (
-      ('ec2.amazonaws.com' IN targetRole.trustedServices
-        AND targetRole.instanceProfileList IS NOT NULL
-        AND targetRole.instanceProfileList <> '[]'
-        AND EXISTS { MATCH (principal)-[:EC2_RUNINSTANCES]->() })
-      OR ('lambda.amazonaws.com' IN targetRole.trustedServices
-        AND EXISTS { MATCH (principal)-[:LAMBDA_CREATEFUNCTION]->() }
-        AND (EXISTS { MATCH (principal)-[:LAMBDA_INVOKEFUNCTION]->() }
-             OR EXISTS { MATCH (principal)-[:LAMBDA_CREATEEVENTSOURCEMAPPING]->() }))
-      OR ('ecs-tasks.amazonaws.com' IN targetRole.trustedServices
-        AND EXISTS { MATCH (principal)-[:ECS_RUNTASK]->() })
-      OR ('datapipeline.amazonaws.com' IN targetRole.trustedServices
-        AND (EXISTS { MATCH (principal)-[:DATAPIPELINE_CREATEPIPELINE]->() }
-             OR EXISTS { MATCH (principal)-[:DATAPIPELINE_PUTPIPELINEDEFINITION]->() }))
-      OR ('glue.amazonaws.com' IN targetRole.trustedServices
-        AND (EXISTS { MATCH (principal)-[:GLUE_CREATEDEVENDPOINT]->() }
-             OR EXISTS { MATCH (principal)-[:GLUE_UPDATEDEVENDPOINT]->() }))
-      OR ('cloudformation.amazonaws.com' IN targetRole.trustedServices
-        AND (EXISTS { MATCH (principal)-[:CLOUDFORMATION_CREATESTACK]->() }
-             OR EXISTS { MATCH (principal)-[:CLOUDFORMATION_UPDATESTACK]->() }
-             OR (EXISTS { MATCH (principal)-[:CLOUDFORMATION_CREATECHANGESET]->() }
-                 AND EXISTS { MATCH (principal)-[:CLOUDFORMATION_EXECUTECHANGESET]->() })))
+      EXISTS { MATCH (principal)-[:EC2_RUNINSTANCES]->() }
+      OR (EXISTS { MATCH (principal)-[:LAMBDA_CREATEFUNCTION]->() }
+          AND (EXISTS { MATCH (principal)-[:LAMBDA_INVOKEFUNCTION]->() }
+              OR EXISTS { MATCH (principal)-[:LAMBDA_CREATEEVENTSOURCEMAPPING]->() }))
+      OR EXISTS { MATCH (principal)-[:ECS_RUNTASK]->() }
+      OR EXISTS { MATCH (principal)-[:GLUE_CREATEDEVENDPOINT]->() }
+      OR (EXISTS { MATCH (principal)-[:CLOUDFORMATION_CREATESTACK]->() }
+          OR EXISTS { MATCH (principal)-[:CLOUDFORMATION_UPDATESTACK]->() }
+          OR (EXISTS { MATCH (principal)-[:CLOUDFORMATION_CREATECHANGESET]->() }
+              AND EXISTS { MATCH (principal)-[:CLOUDFORMATION_EXECUTECHANGESET]->() }))
     )
 
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)
   ON CREATE SET
-    privesc.method = "Method-28-PassRole-ModifyPolicy",
-    privesc.requires = CASE
-      WHEN type(modify) = 'iam:PutRolePolicy' THEN ["iam:PutRolePolicy", "iam:PassRole"]
-      ELSE ["iam:AttachRolePolicy", "iam:PassRole"]
-    END,
+    privesc.method = "Method-28-UpdateAssumeRolePolicy-PassRole-Service",
+    privesc.requires = ["iam:UpdateAssumeRolePolicy", "iam:PassRole", "<service-invocation>"],
     privesc.service = "IAM",
     privesc.targetType = "Role",
-    privesc.attackPath = "Modify role policy + PassRole to service"
+    privesc.attackPath = "Update trust policy to add service, then PassRole + invoke service"
   ON MATCH SET
     privesc.method = CASE
-      WHEN NOT privesc.method CONTAINS "Method-28-PassRole-ModifyPolicy"
-      THEN privesc.method + ",Method-28-PassRole-ModifyPolicy"
+      WHEN NOT privesc.method CONTAINS "Method-28"
+      THEN privesc.method + ",Method-28-UpdateAssumeRolePolicy-PassRole-Service"
       ELSE privesc.method
     END
 
