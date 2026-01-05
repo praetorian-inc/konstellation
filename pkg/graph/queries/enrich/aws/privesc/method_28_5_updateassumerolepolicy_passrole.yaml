@@ -1,0 +1,47 @@
+name: Privesc Method 28.5 - UpdateAssumeRolePolicy + PassRole + Service
+description: Creates CAN_PRIVESC when a principal can update a role's trust policy, pass the role, and invoke a service to assume it
+impactedServices:
+  - IAM
+  - EC2
+  - Lambda
+  - ECS
+  - Glue
+  - CloudFormation
+severity: High
+order: 136
+cypher: |
+  // Method 28: UpdateAssumeRolePolicy + PassRole + Service invocation
+  MATCH (principal)-[:IAM_UPDATEASSUMEROLEPOLICY]->(targetRole:AWS_IAM_Role)
+  WHERE principal.admin IS NULL
+    AND principal.arn <> targetRole.arn
+    AND targetRole.admin = true
+    // Principal can PassRole to this role
+    AND EXISTS { MATCH (principal)-[:IAM_PASSROLE]->(targetRole) }
+    // Principal can invoke at least one service that could assume roles
+    AND (
+      EXISTS { MATCH (principal)-[:EC2_RUNINSTANCES]->() }
+      OR (EXISTS { MATCH (principal)-[:LAMBDA_CREATEFUNCTION]->() }
+          AND (EXISTS { MATCH (principal)-[:LAMBDA_INVOKEFUNCTION]->() }
+               OR EXISTS { MATCH (principal)-[:LAMBDA_CREATEEVENTSOURCEMAPPING]->() }))
+      OR EXISTS { MATCH (principal)-[:ECS_RUNTASK]->() }
+      OR EXISTS { MATCH (principal)-[:GLUE_CREATEDEVENDPOINT]->() }
+      OR (EXISTS { MATCH (principal)-[:CLOUDFORMATION_CREATESTACK]->() }
+          OR EXISTS { MATCH (principal)-[:CLOUDFORMATION_UPDATESTACK]->() }
+          OR (EXISTS { MATCH (principal)-[:CLOUDFORMATION_CREATECHANGESET]->() }
+              AND EXISTS { MATCH (principal)-[:CLOUDFORMATION_EXECUTECHANGESET]->() }))
+    )
+
+  // Create the privesc relationship
+  MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)
+  ON CREATE SET
+    privesc.method = "Method-28-UpdateAssumeRolePolicy-PassRole-Service",
+    privesc.requires = ["iam:UpdateAssumeRolePolicy", "iam:PassRole", "<service-invocation>"],
+    privesc.service = "IAM",
+    privesc.targetType = "Role",
+    privesc.attackPath = "Update trust policy to add service, then PassRole + invoke service"
+  ON MATCH SET
+    privesc.method = CASE
+      WHEN NOT privesc.method CONTAINS "Method-28"
+      THEN privesc.method + ",Method-28-UpdateAssumeRolePolicy-PassRole-Service"
+      ELSE privesc.method
+    END
