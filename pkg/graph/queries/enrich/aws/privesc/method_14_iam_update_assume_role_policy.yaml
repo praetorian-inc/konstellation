@@ -7,7 +7,10 @@ order: 111
 cypher: |
   MATCH (principal)-[:IAM_UPDATEASSUMEROLEPOLICY]->(targetRole:AWS_IAM_Role)
   WHERE principal.admin IS NULL
-    AND EXISTS((principal)-[:STS_ASSUMEROLE]->(targetRole))
+    AND targetRole.admin = true
+    // Check source-side sts:AssumeRole permission to this specific target
+    AND principal.rolePolicyList CONTAINS 'sts:AssumeRole'
+    AND principal.rolePolicyList CONTAINS targetRole.arn
 
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)
@@ -22,4 +25,3 @@ cypher: |
       THEN privesc.method + ",Method-14-UpdateAssumeRolePolicy"
       ELSE privesc.method
     END
-

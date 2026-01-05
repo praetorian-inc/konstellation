@@ -19,7 +19,6 @@ cypher: |
     // Principal cannot directly assume the role
     AND NOT EXISTS {
       MATCH (principal)-[r:STS_ASSUMEROLE]->(targetRole)
-      WHERE r.Allowed = true
     }
     // Principal can PassRole to this role
     AND EXISTS { MATCH (principal)-[:IAM_PASSROLE]->(targetRole) }

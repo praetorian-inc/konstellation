@@ -1,5 +1,5 @@
 name: Privesc Method 30 - CodeBuild CreateProject
-description: Creates CAN_PRIVESC relationship when a principal can create CodeBuild projects with privileged service roles
+description: Creates CAN_PRIVESC relationship when a principal can create CodeBuild projects with privileged service roles (Note: only works when startbuild resource to *)
 impactedServices:
   - IAM
   - CodeBuild

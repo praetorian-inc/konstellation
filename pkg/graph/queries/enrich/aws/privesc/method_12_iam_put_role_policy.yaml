@@ -10,7 +10,6 @@ cypher: |
     AND (principal.arn = role.arn
          OR EXISTS {
            MATCH (principal)-[r:STS_ASSUMEROLE]->(role)
-           WHERE r.Allowed = true
          })
 
   // Create the privesc relationship
