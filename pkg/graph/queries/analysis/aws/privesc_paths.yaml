@@ -17,25 +17,30 @@ cypher: |
   WHERE principal.admin IS NULL
     AND (
       target.admin = true
-      OR target.canSelfEscalate = true
       OR target.canBeMadeAdmin = true
+      OR (target.canSelfEscalate = true AND nodes(path)[-1] = nodes(path)[-2])
     )
 
   WITH principal, min(length(path)) AS minHops
 
-  // Get all paths at minimum hop distance
   MATCH path = (principal)-[:CAN_PRIVESC*1..3]->(target)
   WHERE principal.admin IS NULL
     AND (
       target.admin = true
-      OR target.canSelfEscalate = true
       OR target.canBeMadeAdmin = true
+      OR (target.canSelfEscalate = true AND nodes(path)[-1] = nodes(path)[-2])
     )
     AND length(path) = minHops
 
-  RETURN principal.arn AS vulnerable,
-         [n IN nodes(path)[1..-1] | n.arn] AS intermediateTargets,
-         collect(DISTINCT target.arn) AS finalTargets,
-         length(path) AS hops,
-         [rel IN relationships(path) | rel.method] AS methods
-  ORDER BY vulnerable
+  WITH principal.arn AS vulnerable,
+      [n IN nodes(path)[1..-1] | n.arn] AS intermediateTargets,
+      target.arn AS finalTarget,
+      length(path) AS hops,
+      [rel IN relationships(path) | rel.method] AS methods
+
+  RETURN vulnerable,
+        intermediateTargets,
+        collect(DISTINCT finalTarget) AS finalTargets,
+        hops,
+        methods
+  ORDER BY vulnerable, methods
