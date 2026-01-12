@@ -6,7 +6,7 @@ impactedServices:
 severity: High
 order: 125
 cypher: |
-  MATCH (principal)-[:IAM_PASSROLE]->(targetRole:Role)
+  MATCH (principal)-[:IAM_PASSROLE]->(targetRole:AWS_IAM_Role)
   WHERE principal.admin IS NULL
     AND EXISTS((principal)-[:ECS_RUNTASK]->())
     AND 'ecs-tasks.amazonaws.com' IN targetRole.trustedServices

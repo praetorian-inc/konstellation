@@ -6,7 +6,7 @@ impactedServices:
 severity: High
 order: 114
 cypher: |
-  MATCH (principal)-[:IAM_PASSROLE]->(targetRole:Role)
+  MATCH (principal)-[:IAM_PASSROLE]->(targetRole:AWS_IAM_Role)
   WHERE principal.admin IS NULL
     AND 'lambda.amazonaws.com' IN targetRole.trustedServices
     AND EXISTS((principal)-[:LAMBDA_CREATEFUNCTION]->())

@@ -5,7 +5,7 @@ impactedServices:
 severity: Informational
 order: 40
 cypher: |
-  MATCH (role:Role), (policy:AWS_IAM_ManagedPolicy)
+  MATCH (role:AWS_IAM_Role), (policy:AWS_IAM_ManagedPolicy)
   WHERE role.attachedManagedPolicies CONTAINS policy.arn
   MERGE (policy)-[r:ATTACHED_TO]->(role)
   RETURN role.name, policy.name

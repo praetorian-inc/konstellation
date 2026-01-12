@@ -5,7 +5,7 @@ impactedServices:
 severity: High
 order: 105
 cypher: |
-  MATCH (principal)-[:IAM_PUTROLEPOLICY]->(role:Role)
+  MATCH (principal)-[:IAM_PUTROLEPOLICY]->(role:AWS_IAM_Role)
   WHERE principal.admin IS NULL
     AND (principal.arn = role.arn
          OR EXISTS {
