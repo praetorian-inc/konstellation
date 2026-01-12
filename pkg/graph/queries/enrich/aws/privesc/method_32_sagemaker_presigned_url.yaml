@@ -1,5 +1,5 @@
 name: Privesc Method 32 - SageMaker CreatePresignedNotebookInstanceUrl
-description: Creates CAN_PRIVESC relationship when a principal can access SageMaker notebook instances with privileged roles (Note: query works even when notebook instance is not Running)
+description: Creates CAN_PRIVESC relationship when a principal can access SageMaker notebook instances with privileged roles (Note - query works even when notebook instance is not Running)
 impactedServices:
   - SageMaker
 severity: High
