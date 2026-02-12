@@ -1,0 +1,42 @@
+name: Privesc Method 40 - Lambda UpdateFunctionCode + InvokeFunction
+description: Creates CAN_PRIVESC relationship when a principal can update Lambda function code AND invoke it directly
+impactedServices:
+  - Lambda
+severity: High
+order: 137
+cypher: |
+  MATCH (principal)-[:LAMBDA_UPDATEFUNCTIONCODE]->(lambda:AWS_Lambda_Function)
+  WHERE principal.admin IS NULL
+    AND EXISTS((principal)-[:LAMBDA_INVOKEFUNCTION]->(lambda))
+
+  // Extract Role from top-level property or from _raw_properties JSON
+  WITH principal, lambda,
+    CASE
+      WHEN lambda.Role IS NOT NULL THEN lambda.Role
+      WHEN lambda._raw_properties IS NOT NULL THEN apoc.convert.fromJsonMap(lambda._raw_properties).Role
+      ELSE NULL
+    END AS roleArn
+  WHERE roleArn IS NOT NULL
+
+  // Match the actual role by ARN
+  MATCH (attachedRole:AWS_IAM_Role {arn: roleArn})
+
+  // Create the privesc relationship to the Lambda's attached role
+  MERGE (principal)-[privesc:CAN_PRIVESC]->(attachedRole)
+  ON CREATE SET
+    privesc.method = "Method-40-Lambda-UpdateCode-Invoke",
+    privesc.requires = ["lambda:UpdateFunctionCode", "lambda:InvokeFunction"],
+    privesc.service = "Lambda",
+    privesc.targetType = "Role",
+    privesc.lambdaArn = lambda.arn
+  ON MATCH SET
+    privesc.method = CASE
+      WHEN NOT privesc.method CONTAINS "Method-40-Lambda-UpdateCode-Invoke"
+      THEN privesc.method + ",Method-40-Lambda-UpdateCode-Invoke"
+      ELSE privesc.method
+    END,
+    privesc.lambdaArn = CASE
+      WHEN privesc.lambdaArn IS NULL THEN lambda.arn
+      WHEN NOT privesc.lambdaArn CONTAINS lambda.arn THEN privesc.lambdaArn + "," + lambda.arn
+      ELSE privesc.lambdaArn
+    END
