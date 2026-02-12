@@ -6,15 +6,13 @@ impactedServices:
 severity: High
 order: 124
 cypher: |
-  MATCH (principal)-[:`ssm:StartSession`]->(instance)
+  MATCH (principal)-[:SSM_STARTSESSION]->(instance:AWS_EC2_Instance)
   WHERE principal.admin IS NULL
-    AND (instance:`EC2::Instance` OR instance:`AWS::EC2::Instance`)
     AND instance.IamInstanceProfile IS NOT NULL
 
   // Match the actual IAM role using instanceProfileList
-  MATCH (instanceRole)
-  WHERE (instanceRole:`IAM::Role` OR instanceRole:`AWS::IAM::Role`)
-    AND instanceRole.instanceProfileList CONTAINS instance.IamInstanceProfile
+  MATCH (instanceRole:AWS_IAM_Role)
+    WHERE instanceRole.instanceProfileList CONTAINS instance.IamInstanceProfile
     AND instanceRole.ssmEnabled = true
 
   // Create the privesc relationship to the instance's role

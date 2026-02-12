@@ -6,10 +6,10 @@ impactedServices:
 severity: High
 order: 119
 cypher: |
-  MATCH (principal)-[:`iam:PassRole`]->(targetRole:`IAM::Role`)
+  MATCH (principal)-[:IAM_PASSROLE]->(targetRole:AWS_IAM_Role)
   WHERE principal.admin IS NULL
     AND 'cloudformation.amazonaws.com' IN targetRole.trustedServices
-    AND EXISTS((principal)-[:`cloudformation:CreateStack`]->())
+    AND EXISTS((principal)-[:CLOUDFORMATION_CREATESTACK]->())
 
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)

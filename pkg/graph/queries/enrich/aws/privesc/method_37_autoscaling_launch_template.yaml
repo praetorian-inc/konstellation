@@ -1,0 +1,30 @@
+name: Privesc Method 37 - AutoScaling New Launch Template
+description: Creates CAN_PRIVESC relationship when a principal can create launch templates and ASGs with privileged instance profiles
+impactedServices:
+  - IAM
+  - EC2
+  - AutoScaling
+severity: High
+order: 135
+cypher: |
+  MATCH (principal)-[:IAM_PASSROLE]->(targetRole:AWS_IAM_Role)
+  WHERE principal.admin IS NULL
+    AND 'ec2.amazonaws.com' IN targetRole.trustedServices
+    AND targetRole.instanceProfileList IS NOT NULL
+    AND targetRole.instanceProfileList <> '[]'
+    AND EXISTS((principal)-[:EC2_CREATELAUNCHTEMPLATE]->())
+    AND EXISTS((principal)-[:AUTOSCALING_CREATEAUTOSCALINGGROUP]->())
+
+  // Create the privesc relationship
+  MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)
+  ON CREATE SET
+    privesc.method = "Method-37-AutoScaling-LaunchTemplate",
+    privesc.requires = ["iam:PassRole", "ec2:CreateLaunchTemplate", "autoscaling:CreateAutoScalingGroup"],
+    privesc.service = "AutoScaling",
+    privesc.targetType = "Role"
+  ON MATCH SET
+    privesc.method = CASE
+      WHEN NOT privesc.method CONTAINS "Method-37-AutoScaling-LaunchTemplate"
+      THEN privesc.method + ",Method-37-AutoScaling-LaunchTemplate"
+      ELSE privesc.method
+    END

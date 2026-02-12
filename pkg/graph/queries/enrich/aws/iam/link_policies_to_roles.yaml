@@ -5,23 +5,7 @@ impactedServices:
 severity: Informational
 order: 40
 cypher: |
-  MATCH (role:Role), (policy)
-  WHERE any(label IN labels(policy) WHERE label CONTAINS 'Policy')
-
-  // Use pattern matching on ARNs to identify likely relationships
-  // This works on common patterns in AWS where role names appear in policy ARNs and vice versa
-  WITH role, policy
-  WHERE 
-    // Check if role ARN contains policy name or vice versa
-    (
-      (role.arn CONTAINS split(policy.arn, '/')[-1]) OR
-      (policy.arn CONTAINS split(role.arn, '/')[-1])
-    ) OR
-    // Match service roles with service policies
-    (
-      (role.arn CONTAINS 'service-role/' AND policy.arn CONTAINS 'service-role/') OR
-      (role.arn CONTAINS 'aws-service-role/' AND policy.arn CONTAINS 'service-role/')
-    )
-
-  // Create the relationship
+  MATCH (role:AWS_IAM_Role), (policy:AWS_IAM_ManagedPolicy)
+  WHERE role.attachedManagedPolicies CONTAINS policy.arn
   MERGE (policy)-[r:ATTACHED_TO]->(role)
+  RETURN role.name, policy.name

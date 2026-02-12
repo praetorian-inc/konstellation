@@ -1,0 +1,28 @@
+name: Privesc Method 31 - CodeBuild UpdateProject
+description: Creates CAN_PRIVESC relationship when a principal can update CodeBuild projects to use privileged service roles
+impactedServices:
+  - IAM
+  - CodeBuild
+severity: High
+order: 129
+cypher: |
+  MATCH (principal)-[:IAM_PASSROLE]->(targetRole:AWS_IAM_Role)
+  WHERE principal.admin IS NULL
+    AND 'codebuild.amazonaws.com' IN targetRole.trustedServices
+    AND EXISTS((principal)-[:CODEBUILD_UPDATEPROJECT]->())
+    AND (EXISTS((principal)-[:CODEBUILD_STARTBUILD]->())
+         OR EXISTS((principal)-[:CODEBUILD_STARTBUILDBATCH]->()))
+
+  // Create the privesc relationship
+  MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)
+  ON CREATE SET
+    privesc.method = "Method-31-CodeBuild-UpdateProject",
+    privesc.requires = ["iam:PassRole", "codebuild:UpdateProject", "codebuild:StartBuild"],
+    privesc.service = "CodeBuild",
+    privesc.targetType = "Role"
+  ON MATCH SET
+    privesc.method = CASE
+      WHEN NOT privesc.method CONTAINS "Method-31-CodeBuild-UpdateProject"
+      THEN privesc.method + ",Method-31-CodeBuild-UpdateProject"
+      ELSE privesc.method
+    END

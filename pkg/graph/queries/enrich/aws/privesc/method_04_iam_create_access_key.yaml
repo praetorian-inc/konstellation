@@ -5,7 +5,7 @@ impactedServices:
 severity: High
 order: 108
 cypher: |
-  MATCH (principal)-[:`iam:CreateAccessKey`]->(user:`IAM::User`)
+  MATCH (principal)-[:IAM_CREATEACCESSKEY]->(user:AWS_IAM_User)
   WHERE principal.admin IS NULL
 
   // Create the privesc relationship

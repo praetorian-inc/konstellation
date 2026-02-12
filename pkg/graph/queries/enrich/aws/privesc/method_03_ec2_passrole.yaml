@@ -6,9 +6,9 @@ impactedServices:
 severity: High
 order: 113
 cypher: |
-  MATCH (principal)-[:`iam:PassRole`]->(targetRole:Role)
+  MATCH (principal)-[:IAM_PASSROLE]->(targetRole:AWS_IAM_Role)
   WHERE principal.admin IS NULL
-    AND EXISTS((principal)-[:`ec2:RunInstances`]->())
+    AND EXISTS((principal)-[:EC2_RUNINSTANCES]->())
     AND 'ec2.amazonaws.com' IN targetRole.trustedServices
     AND targetRole.instanceProfileList IS NOT NULL
     AND targetRole.instanceProfileList <> '[]'

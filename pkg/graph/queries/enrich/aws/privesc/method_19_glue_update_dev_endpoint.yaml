@@ -7,7 +7,7 @@ order: 118
 cypher: |
   MATCH (principal)
   WHERE principal.admin IS NULL
-    AND (EXISTS((principal)-[:`glue:UpdateDevEndpoint`]->())
+    AND (EXISTS((principal)-[:GLUE_UPDATEDEVENDPOINT]->())
          OR ANY(policy IN principal.attachedManagedPolicies WHERE
            policy CONTAINS 'AWSGlueConsoleFullAccess'
            OR policy CONTAINS 'GlueFullAccess'))

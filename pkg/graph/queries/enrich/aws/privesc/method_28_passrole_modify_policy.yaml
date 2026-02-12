@@ -12,40 +12,39 @@ severity: High
 order: 126
 cypher: |
   // Find principals that can modify a role's policies (PutRolePolicy or AttachRolePolicy)
-  MATCH (principal)-[modify]->(targetRole:`IAM::Role`)
+  MATCH (principal)-[modify]->(targetRole:AWS_IAM_Role)
   WHERE principal.admin IS NULL
     AND principal.arn <> targetRole.arn
-    AND type(modify) IN ['iam:PutRolePolicy', 'iam:AttachRolePolicy']
+    AND type(modify) IN ['IAM_PUTROLEPOLICY', 'IAM_ATTACHROLEPOLICY']
     // Principal cannot directly assume the role
     AND NOT EXISTS {
-      MATCH (principal)-[r:`sts:AssumeRole`]->(targetRole)
-      WHERE r.Allowed = true
+      MATCH (principal)-[r:STS_ASSUMEROLE]->(targetRole)
     }
     // Principal can PassRole to this role
-    AND EXISTS { MATCH (principal)-[:`iam:PassRole`]->(targetRole) }
+    AND EXISTS { MATCH (principal)-[:IAM_PASSROLE]->(targetRole) }
     // Role trusts a service AND principal can execute that service
     AND (
       ('ec2.amazonaws.com' IN targetRole.trustedServices
         AND targetRole.instanceProfileList IS NOT NULL
         AND targetRole.instanceProfileList <> '[]'
-        AND EXISTS { MATCH (principal)-[:`ec2:RunInstances`]->() })
+        AND EXISTS { MATCH (principal)-[:EC2_RUNINSTANCES]->() })
       OR ('lambda.amazonaws.com' IN targetRole.trustedServices
-        AND EXISTS { MATCH (principal)-[:`lambda:CreateFunction`]->() }
-        AND (EXISTS { MATCH (principal)-[:`lambda:InvokeFunction`]->() }
-             OR EXISTS { MATCH (principal)-[:`lambda:CreateEventSourceMapping`]->() }))
+        AND EXISTS { MATCH (principal)-[:LAMBDA_CREATEFUNCTION]->() }
+        AND (EXISTS { MATCH (principal)-[:LAMBDA_INVOKEFUNCTION]->() }
+             OR EXISTS { MATCH (principal)-[:LAMBDA_CREATEEVENTSOURCEMAPPING]->() }))
       OR ('ecs-tasks.amazonaws.com' IN targetRole.trustedServices
-        AND EXISTS { MATCH (principal)-[:`ecs:RunTask`]->() })
+        AND EXISTS { MATCH (principal)-[:ECS_RUNTASK]->() })
       OR ('datapipeline.amazonaws.com' IN targetRole.trustedServices
-        AND (EXISTS { MATCH (principal)-[:`datapipeline:CreatePipeline`]->() }
-             OR EXISTS { MATCH (principal)-[:`datapipeline:PutPipelineDefinition`]->() }))
+        AND (EXISTS { MATCH (principal)-[:DATAPIPELINE_CREATEPIPELINE]->() }
+             OR EXISTS { MATCH (principal)-[:DATAPIPELINE_PUTPIPELINEDEFINITION]->() }))
       OR ('glue.amazonaws.com' IN targetRole.trustedServices
-        AND (EXISTS { MATCH (principal)-[:`glue:CreateDevEndpoint`]->() }
-             OR EXISTS { MATCH (principal)-[:`glue:UpdateDevEndpoint`]->() }))
+        AND (EXISTS { MATCH (principal)-[:GLUE_CREATEDEVENDPOINT]->() }
+             OR EXISTS { MATCH (principal)-[:GLUE_UPDATEDEVENDPOINT]->() }))
       OR ('cloudformation.amazonaws.com' IN targetRole.trustedServices
-        AND (EXISTS { MATCH (principal)-[:`cloudformation:CreateStack`]->() }
-             OR EXISTS { MATCH (principal)-[:`cloudformation:UpdateStack`]->() }
-             OR (EXISTS { MATCH (principal)-[:`cloudformation:CreateChangeSet`]->() }
-                 AND EXISTS { MATCH (principal)-[:`cloudformation:ExecuteChangeSet`]->() })))
+        AND (EXISTS { MATCH (principal)-[:CLOUDFORMATION_CREATESTACK]->() }
+             OR EXISTS { MATCH (principal)-[:CLOUDFORMATION_UPDATESTACK]->() }
+             OR (EXISTS { MATCH (principal)-[:CLOUDFORMATION_CREATECHANGESET]->() }
+                 AND EXISTS { MATCH (principal)-[:CLOUDFORMATION_EXECUTECHANGESET]->() })))
     )
 
   // Create the privesc relationship

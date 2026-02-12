@@ -5,12 +5,12 @@ impactedServices:
 severity: High
 order: 116
 cypher: |
-  MATCH (principal)-[:`lambda:UpdateFunctionCode`]->(lambda:`Lambda::Function`)
+  MATCH (principal)-[:LAMBDA_UPDATEFUNCTIONCODE]->(lambda:AWS_Lambda_Function)
   WHERE principal.admin IS NULL
     AND lambda.Role IS NOT NULL
 
   // Match the actual role by ARN
-  MATCH (attachedRole:`IAM::Role` {arn: lambda.Role})
+  MATCH (attachedRole:AWS_IAM_Role {arn: lambda.Role})
 
   // Create the privesc relationship to the Lambda's attached role
   MERGE (principal)-[privesc:CAN_PRIVESC]->(attachedRole)

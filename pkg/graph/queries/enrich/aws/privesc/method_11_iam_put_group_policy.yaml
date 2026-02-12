@@ -5,9 +5,9 @@ impactedServices:
 severity: High
 order: 103
 cypher: |
-  MATCH (principal)-[:`iam:PutGroupPolicy`]->(group:`IAM::Group`)
+  MATCH (principal)-[:IAM_PUTGROUPPOLICY]->(group:AWS_IAM_Group)
   WHERE principal.admin IS NULL
-    AND group.identifier IN principal.groupList
+    AND group.groupName IN principal.groupList
 
   // Create self-escalation relationship via group
   MERGE (principal)-[privesc:CAN_PRIVESC]->(principal)

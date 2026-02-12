@@ -1,0 +1,33 @@
+name: Privesc Method 32 - SageMaker CreatePresignedNotebookInstanceUrl
+description: Creates CAN_PRIVESC relationship when a principal can access SageMaker notebook instances with privileged roles (Note - query works even when notebook instance is not Running)
+impactedServices:
+  - SageMaker
+severity: High
+order: 130
+cypher: |
+  MATCH (principal)-[:SAGEMAKER_CREATEPRESIGNEDNOTEBOOKINSTANCEURL]->(notebook:AWS_SageMaker_NotebookInstance)
+  WHERE principal.admin IS NULL
+    AND notebook.Role IS NOT NULL
+
+  // Match the actual role by ARN
+  MATCH (executionRole:AWS_IAM_Role {arn: notebook.Role})
+
+  // Create the privesc relationship to the notebook's execution role
+  MERGE (principal)-[privesc:CAN_PRIVESC]->(executionRole)
+  ON CREATE SET
+    privesc.method = "Method-32-SageMaker-PresignedUrl",
+    privesc.requires = ["sagemaker:CreatePresignedNotebookInstanceUrl"],
+    privesc.service = "SageMaker",
+    privesc.targetType = "Role",
+    privesc.notebookName = notebook.name
+  ON MATCH SET
+    privesc.method = CASE
+      WHEN NOT privesc.method CONTAINS "Method-32-SageMaker-PresignedUrl"
+      THEN privesc.method + ",Method-32-SageMaker-PresignedUrl"
+      ELSE privesc.method
+    END,
+    privesc.notebookName = CASE
+      WHEN privesc.notebookName IS NULL THEN notebook.name
+      WHEN NOT privesc.notebookName CONTAINS notebook.name THEN privesc.notebookName + "," + notebook.name
+      ELSE privesc.notebookName
+    END

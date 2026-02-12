@@ -5,7 +5,7 @@ impactedServices:
 severity: High
 order: 110
 cypher: |
-  MATCH (principal)-[:`iam:UpdateLoginProfile`]->(user:`IAM::User`)
+  MATCH (principal)-[:IAM_UPDATELOGINPROFILE]->(user:AWS_IAM_User)
   WHERE principal.admin IS NULL
 
   // Create the privesc relationship

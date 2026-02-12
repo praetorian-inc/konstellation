@@ -5,7 +5,7 @@ impactedServices:
 severity: High
 order: 101
 cypher: |
-  MATCH (principal:`IAM::User`)-[:`iam:PutUserPolicy`]->(user:`IAM::User`)
+  MATCH (principal:AWS_IAM_User)-[:IAM_PUTUSERPOLICY]->(user:AWS_IAM_User)
   WHERE principal.admin IS NULL
     AND principal.arn = user.arn
 

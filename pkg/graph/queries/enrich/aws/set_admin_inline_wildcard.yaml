@@ -1,0 +1,55 @@
+name: Set Admin Inline Wildcard
+description: Sets the admin attribute to true for principals with inline policies granting full wildcard (*) or IAM wildcard (iam:*) actions and resources
+impactedServices:
+  - IAM
+severity: Informational
+order: 31
+cypher: |
+  // Set admin=true for principals with admin-equivalent inline policies
+  MATCH (p:Principal)
+  WHERE p.admin IS NULL OR p.admin = false
+  WITH p,
+    CASE
+      WHEN p.rolePolicyList IS NOT NULL AND p.rolePolicyList <> 'null' AND p.rolePolicyList <> '[]'
+        THEN p.rolePolicyList
+      WHEN p.userPolicyList IS NOT NULL AND p.userPolicyList <> 'null' AND p.userPolicyList <> '[]'
+        THEN p.userPolicyList
+      ELSE NULL
+    END AS policyList
+  WHERE policyList IS NOT NULL
+    // Must have Allow effect
+    AND policyList CONTAINS '"Effect":"Allow"'
+    AND (
+      // Case 1: Full wildcard Action (*) + Resource (*)
+      (
+        (
+          policyList CONTAINS '"Action":"*"'
+          OR policyList CONTAINS '"Action": "*"'
+          OR policyList CONTAINS '"Action":["*"]'
+          OR policyList CONTAINS '"Action": ["*"]'
+        )
+        AND (
+          policyList CONTAINS '"Resource":"*"'
+          OR policyList CONTAINS '"Resource": "*"'
+          OR policyList CONTAINS '"Resource":["*"]'
+          OR policyList CONTAINS '"Resource": ["*"]'
+        )
+      )
+      // Case 2: IAM wildcard (iam:*) + Resource (*) - can escalate to full admin
+      OR (
+        (
+          policyList CONTAINS '"Action":"iam:*"'
+          OR policyList CONTAINS '"Action": "iam:*"'
+          OR policyList CONTAINS '"Action":["iam:*"]'
+          OR policyList CONTAINS '"Action": ["iam:*"]'
+          OR policyList CONTAINS '"iam:*"'
+        )
+        AND (
+          policyList CONTAINS '"Resource":"*"'
+          OR policyList CONTAINS '"Resource": "*"'
+          OR policyList CONTAINS '"Resource":["*"]'
+          OR policyList CONTAINS '"Resource": ["*"]'
+        )
+      )
+    )
+  SET p.admin = true

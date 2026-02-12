@@ -1,0 +1,33 @@
+name: Externally-Trusted IAM Roles
+description: Identifies IAM roles that trust external AWS accounts or public principals, including extraction of trusted external ARNs from assume role policy documents. Highlights privileged roles that can escalate to admin.
+impactedServices:
+  - IAM
+severity: High
+cypher: |
+  // Externally-trusted roles with trusted principals extracted
+  MATCH (r:AWS_IAM_Role)
+  WHERE r.trustsPublic = true
+     OR r.trustsAccountRoot = true
+     OR r.assumeRolePolicyDoc =~ '.*:iam::((?!050763642978|080741143546)\\d{12}):.*'
+
+  OPTIONAL MATCH (r)-[:CAN_PRIVESC]->(adminTarget:AWS_IAM_Role {admin: true})
+
+  WITH r, COUNT(adminTarget) > 0 AS canPrivescToAdmin
+
+  // Extract external ARNs from trust policy using regex
+  WITH r, canPrivescToAdmin,
+       [match IN apoc.text.regexGroups(r.assumeRolePolicyDoc, '(arn:aws:iam::\\d{12}:[^"]+)') | match[1]] AS allArns
+
+  // Filter to only external ARNs (not matching role's own account)
+  WITH r, canPrivescToAdmin,
+       [arn IN allArns WHERE NOT arn CONTAINS r.accountId] AS externalArns
+
+  RETURN
+    r.arn AS vulnerable,
+    r.roleName AS roleName,
+    r.accountId AS accountId,
+    COALESCE(r.admin = true, false) OR canPrivescToAdmin AS isPrivileged,
+    r.trustsPublic AS trustsPublic,
+    r.trustsAccountRoot AS trustsAccountRoot,
+    externalArns AS trustedExternalPrincipals
+  ORDER BY isPrivileged DESC, r.trustsAccountRoot DESC, r.accountId, r.roleName
