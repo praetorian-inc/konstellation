@@ -1,0 +1,28 @@
+name: Privesc Method 41 - Bedrock PassRole CreateCodeInterpreter
+description: Creates CAN_PRIVESC relationship when a principal can pass roles to Bedrock AgentCore and create code interpreters for arbitrary code execution
+impactedServices:
+  - IAM
+  - Bedrock
+severity: High
+order: 138
+cypher: |
+  MATCH (principal)-[:IAM_PASSROLE]->(targetRole:AWS_IAM_Role)
+  WHERE principal.admin IS NULL
+    AND 'bedrock.amazonaws.com' IN targetRole.trustedServices
+    AND EXISTS((principal)-[:`BEDROCK-AGENTCORE_CREATECODEINTERPRETER`]->())
+    AND EXISTS((principal)-[:`BEDROCK-AGENTCORE_STARTCODEINTERPRETERSESSION`]->())
+    AND EXISTS((principal)-[:`BEDROCK-AGENTCORE_INVOKECODEINTERPRETER`]->())
+
+  // Create the privesc relationship
+  MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)
+  ON CREATE SET
+    privesc.method = "Method-41-Bedrock-PassRole-CreateCodeInterpreter",
+    privesc.requires = ["iam:PassRole", "bedrock-agentcore:CreateCodeInterpreter", "bedrock-agentcore:StartCodeInterpreterSession", "bedrock-agentcore:InvokeCodeInterpreter"],
+    privesc.service = "Bedrock",
+    privesc.targetType = "Role"
+  ON MATCH SET
+    privesc.method = CASE
+      WHEN NOT privesc.method CONTAINS "Method-41-Bedrock-PassRole-CreateCodeInterpreter"
+      THEN privesc.method + ",Method-41-Bedrock-PassRole-CreateCodeInterpreter"
+      ELSE privesc.method
+    END
