@@ -9,6 +9,7 @@ cypher: |
   WHERE role.assumeRolePolicyDoc IS NOT NULL
   WITH role,
     [service IN [
+      'bedrock.amazonaws.com',
       'ec2.amazonaws.com',
       'lambda.amazonaws.com',
       'glue.amazonaws.com',
