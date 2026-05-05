@@ -18,11 +18,14 @@ cypher: |
     AND type(modify) IN ['iam:PutRolePolicy', 'iam:AttachRolePolicy']
     // Principal cannot directly assume the role
     AND NOT EXISTS {
-      MATCH (principal)-[r:`sts:AssumeRole`]->(targetRole)
-      WHERE r.Allowed = true
+      MATCH (principal)-[r]->(targetRole)
+      WHERE type(r) = 'sts:AssumeRole' AND r.Allowed = true
     }
     // Principal can PassRole to this role
-    AND EXISTS { MATCH (principal)-[:`iam:PassRole`]->(targetRole) }
+    AND EXISTS {
+      MATCH (principal)-[r]->(targetRole)
+      WHERE type(r) = 'iam:PassRole'
+    }
     // Role trusts a service AND principal can execute that service
     AND (
       ('ec2.amazonaws.com' IN targetRole.trustedServices

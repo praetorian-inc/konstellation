@@ -7,7 +7,10 @@ order: 111
 cypher: |
   MATCH (principal)-[:`iam:UpdateAssumeRolePolicy`]->(targetRole:`IAM::Role`)
   WHERE principal.admin IS NULL
-    AND EXISTS((principal)-[:`sts:AssumeRole`]->(targetRole))
+    AND EXISTS {
+      MATCH (principal)-[r]->(targetRole)
+      WHERE type(r) = 'sts:AssumeRole'
+    }
 
   // Create the privesc relationship
   MERGE (principal)-[privesc:CAN_PRIVESC]->(targetRole)

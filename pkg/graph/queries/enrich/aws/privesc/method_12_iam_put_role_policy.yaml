@@ -9,8 +9,8 @@ cypher: |
   WHERE principal.admin IS NULL
     AND (principal.arn = role.arn
          OR EXISTS {
-           MATCH (principal)-[r:`sts:AssumeRole`]->(role)
-           WHERE r.Allowed = true
+           MATCH (principal)-[r]->(role)
+           WHERE type(r) = 'sts:AssumeRole' AND r.Allowed = true
          })
 
   // Create the privesc relationship
