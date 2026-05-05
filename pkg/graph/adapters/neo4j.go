@@ -76,21 +76,35 @@ func (db *Neo4jDatabase) CreateNodes(ctx context.Context, nodes []*graph.Node) (
 		}
 	}
 
-	// Group nodes by their labels and unique keys
-	groups := make(map[string][]*graph.Node)
+	// Group nodes by their labels and unique keys.
+	// We keep the original Labels/UniqueKey slices alongside the grouping key
+	// because the grouping key uses `:` and `||` as separators, which collide
+	// with characters that are legal inside label names (e.g. `AWS::IAM::Role`).
+	// Splitting the key back into labels would corrupt them, so we retain the
+	// originals and pass them to processBatch directly.
+	type batchGroup struct {
+		labels     []string
+		uniqueKeys []string
+		nodes      []*graph.Node
+	}
+	groups := make(map[string]*batchGroup)
 	for _, node := range nodes {
 		key := getNodeGroupKey(node.Labels, node.UniqueKey)
-		groups[key] = append(groups[key], node)
+		g, ok := groups[key]
+		if !ok {
+			g = &batchGroup{labels: node.Labels, uniqueKeys: node.UniqueKey}
+			groups[key] = g
+		}
+		g.nodes = append(g.nodes, node)
 	}
 
 	result := &graph.BatchResult{}
 
 	// Process each group in batches
-	for groupKey, groupedNodes := range groups {
-		// Parse the group key
-		parts := strings.Split(groupKey, "||")
-		labels := strings.Split(parts[0], ":")
-		uniqueKeys := strings.Split(parts[1], ":")
+	for _, group := range groups {
+		groupedNodes := group.nodes
+		labels := group.labels
+		uniqueKeys := group.uniqueKeys
 
 		// Process in batches
 		for i := 0; i < len(groupedNodes); i += db.batchSize {
