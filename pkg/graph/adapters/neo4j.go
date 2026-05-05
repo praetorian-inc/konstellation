@@ -268,7 +268,17 @@ func getNodeGroupKey(labels []string, uniqueKey []string) string {
 }
 
 func buildBatchMergeQuery(labels []string, uniqueKey []string) string {
-	labelStr := strings.Join(labels, ":")
+	// Backtick-wrap each label so labels containing special characters
+	// (e.g. colons, as in "AWS::IAM::Role") parse as a single identifier.
+	// Without this, "AWS::IAM::Role" is interpreted as label "AWS" followed
+	// by stray "::" tokens, which is a Cypher syntax error and causes the
+	// MERGE to fail silently — its error gets appended to BatchResult.Errors
+	// but CreateNodes returns nil from its top-level err.
+	quoted := make([]string, len(labels))
+	for i, label := range labels {
+		quoted[i] = "`" + label + "`"
+	}
+	labelStr := strings.Join(quoted, ":")
 
 	// Check if this is a Service Principal
 	//isServicePrincipal := contains(labels, "Service") && contains(labels, "Principal")
