@@ -26,6 +26,8 @@ cypher: |
       ELSE privesc.method
     END
 
-  // Mark based on whether self or other
+  // Mark capability on the *principal* (the actor who can promote the role to admin),
+  // not on the target. Self-attaches mark canSelfEscalate; cross-principal attaches
+  // mark canBeMadeAdmin (= "this principal can promote a role to admin and weaponize it").
   SET principal.canSelfEscalate = CASE WHEN principal.arn = role.arn THEN true ELSE principal.canSelfEscalate END,
-      role.canBeMadeAdmin = CASE WHEN principal.arn <> role.arn THEN true ELSE role.canBeMadeAdmin END
+      principal.canBeMadeAdmin = CASE WHEN principal.arn <> role.arn THEN true ELSE principal.canBeMadeAdmin END

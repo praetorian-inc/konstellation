@@ -12,7 +12,13 @@ impactedServices:
   - DataPipeline
 severity: High
 cypher: |
-  // Find minimum hops for each principal to reach an admin target
+  // Find minimum hops for each principal to reach an admin-capable target.
+  // A "target" here counts as admin-capable if any of:
+  //   - target.admin = true               -> the target IS admin
+  //   - target.canSelfEscalate = true     -> target can self-attach a policy
+  //   - target.canBeMadeAdmin = true      -> target can promote a role to admin
+  //                                          and weaponize it (the actor side
+  //                                          of method_09 / method_12 / method_28).
   MATCH path = (principal)-[:CAN_PRIVESC*1..3]->(target)
   WHERE principal.admin IS NULL
     AND (

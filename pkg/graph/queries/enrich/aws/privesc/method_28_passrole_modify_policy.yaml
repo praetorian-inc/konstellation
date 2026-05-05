@@ -69,5 +69,6 @@ cypher: |
       ELSE privesc.method
     END
 
-  // Mark target as can be made admin since principal can modify its policies
-  SET targetRole.canBeMadeAdmin = true
+  // Mark capability on the *principal* (the actor that can modify the role's policies
+  // and weaponize it via PassRole + service execution), not on the target.
+  SET principal.canBeMadeAdmin = true

@@ -1,0 +1,15 @@
+name: Set Admin Via Group Membership
+description: Propagates admin=true to users whose group has AdministratorAccess or IAMFullAccess attached
+impactedServices:
+  - IAM
+severity: Informational
+order: 32
+cypher: |
+  // Match users that belong to a group via the iam:AddUserToGroup edge,
+  // and where the group has an admin-equivalent managed policy attached.
+  MATCH (u:Principal)-[:`iam:AddUserToGroup`]->(g)
+  WHERE (u.admin IS NULL OR u.admin = false)
+    AND g.attachedManagedPolicies IS NOT NULL
+    AND ('arn:aws:iam::aws:policy/AdministratorAccess' IN g.attachedManagedPolicies
+         OR 'arn:aws:iam::aws:policy/IAMFullAccess' IN g.attachedManagedPolicies)
+  SET u.admin = true
